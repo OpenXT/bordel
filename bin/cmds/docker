@@ -1,0 +1,108 @@
+#!/bin/bash
+
+docker_list() {
+    local path=${1}
+
+    ls -1 ${path}
+}
+
+docker_create() {
+    local path=${1}
+    local name=${2}
+    local file=${3}
+
+    if [ -z "${name}" -o -z "${file}" ]; then
+        echo "Error: empty parameter" >&2
+        echo "create_container name Dockerfile" >&2
+        return 1
+    fi
+
+    if [ ! -e "${path}/${file}" ]; then
+        echo "No Dockerfile defined for ${file} found" >&2
+        return 1
+    fi
+
+    docker build --force-rm --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
+        -t ${name} -f ${path}/${file} ${path}
+}
+
+docker_enter() {
+    local name=${1}
+    local user=${2:-"build"}
+
+    if [ -z "${name}" ]; then
+        echo "please provide a container to enter"
+        return 1
+    fi
+
+    docker run --rm -it --security-opt seccomp=unconfined \
+        -v "${REPO_DIR}:/home/${user}/openxt" \
+        -v "${HOME}/.ssh:/home/${user}/.ssh" \
+        -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
+        -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
+        -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
+        "${name}"
+}
+
+docker_build() {
+    local name=${1}
+    local user=${2:-"build"}
+
+    if [ -z "${name}" ]; then
+        echo "please provide a container to enter"
+        return 1
+    fi
+    
+    docker run --rm -it \
+	--security-opt seccomp=unconfined \
+        -v "${TOP}:/home/${user}/openxt" \
+        -v "${HOME}/.ssh:/home/${user}/.ssh" \
+        -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
+        -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
+        -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
+        "${name}" "/home/${user}/openxt/bin/bordel" "build" "-i ${BUILD_ID}"
+}
+
+# Usage: docker_usage
+# Display usage for this command wrapper.
+docker_usage() {
+    echo "Docker command list:"
+    echo "  list: List the Dockerfiles available"
+    echo "  create {name} {file}: Creates Docker image as {name} using Dockerfile {file}" 
+    echo "  enter {name} [user]: Enter an instance of {name} optionally as [user]"
+    echo "  build {name} [user]: Run a build in an instance of {name} optionally as [user]"
+    exit $1
+}
+
+# While docker_build needs a conf item, need to be able to run create and enter before having a config
+docker_need_conf() { return 1; }
+
+docker_main() {
+    local manifest_dir="${REPO_DIR}/.repo/manifests"
+    local dockerfiles="${manifest_dir}/Dockerfiles"
+
+    command_sane "docker" "docker-ce"
+    if [ ! $? ]; then
+        return 1
+    fi
+
+    docker info >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "Not allowed to control docker, usually not a member of docker group" >&2
+        return 1
+    fi
+
+    cmd="$1"
+    shift 1
+
+    case "${cmd}" in
+        "list") docker_list ${dockerfiles} ;;
+        "create") docker_create ${dockerfiles} $@ ;; 
+        "enter") docker_enter $@ ;;
+        "build") docker_build $@ ;;
+        "help") docker_usage 0 ;;
+        *) echo "Unknown docker command \`${cmd}'." >&2
+           docker_usage 1
+           ;;
+    esac
+}

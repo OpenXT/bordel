@@ -1,0 +1,158 @@
+#!/bin/bash
+
+config_generate_auto() {
+    local branch=${1}
+    local sstate_dir=${2}
+
+    if [  -e "${CONF_DIR}/auto.conf" ]; then
+        return
+    fi
+
+    cat > "${CONF_DIR}/auto.conf" << EOF
+#
+# Auto-generated configuration
+#
+DL_DIR ?= "${TOP}/downloads"
+
+SSTATE_DIR = "${sstate_dir}"
+
+# Set DEPLOY_DIR outside of TMPDIR
+DEPLOY_DIR = "${DEPLOY_DIR}"
+
+export CCACHE_DIR = "${TOP}/ccache"
+CCACHE_TARGET_DIR = "\${CACHE_DIR}"
+
+DISTRO ?= "openxt-main"
+
+OPENXT_MIRROR = "http://mirror.openxt.org"
+OPENXT_GIT_MIRROR = "${TOP}/mirror"
+OPENXT_GIT_PROTOCOL = "file"
+OPENXT_BRANCH = "${branch}"
+OPENXT_TAG = "${branch}"
+
+# OpenXT: Where To get the signing certificates.
+OPENXT_CERTS_DIR = "${CERTS_DIR}"
+EOF
+}
+
+config_copy_template() {
+    local template=${1}
+    local file=${2}
+    local critical_files="bblayers.conf local.conf openxt.conf"
+
+    if [ -e "${CONF_DIR}/${file}" ]; then
+        return
+    fi
+
+    if [ -z "${critical_files##*${file}*}" ]; then
+        if [ ! -e "${TOP}/templates/${template}/${file}" ]; then
+            echo "WARNING: no ${file} template, must manually setup ${file}!">&2
+            return
+        fi
+    fi
+
+    [ -e "${TOP}/templates/${template}/${file}" ] &&
+        cp -n "${TOP}/templates/${template}/${file}" "${CONF_DIR}/${file}"
+}
+
+config_generate_env_file() {
+    BBPATH="${TOP}/layers/bitbake/bin:"
+    NEWPATH=$BBPATH$(echo "$PATH" | sed -e "s|:$BBPATH|:|g" -e "s|^$BBPATH||")
+
+    cat >${BUILD_DIR}/build_env <<EOF
+#!/bin/bash
+
+if [ "$_" == "$0" ]; then
+    echo "This is supposed to be sourced, not executed"
+    return 1
+fi
+
+BB_ENV_EXTRAWHITE="MACHINE BUILD_UID LAYERS_DIR"
+LAYERS_DIR="${TOP}/layers"
+BUILDDIR="${BUILD_DIR}"
+PATH="${NEWPATH}"
+
+bb32() {
+    # ensure bitbake believes this is a 32bit arch
+    linux32 bitbake "\$@"
+}
+
+cd "\${BUILDDIR}"
+export BB_ENV_EXTRAWHITE LAYERS_DIR BUILDDIR PATH
+EOF
+}
+
+config_generate_bordel_config() {
+    cat >${BUILD_DIR}/.putain <<EOF
+TOP=${TOP}
+BUILD_ID=${BUILD_ID}
+BUILD_DIR=${BUILD_DIR}
+CONF_DIR=${CONF_DIR}
+CERTS_DIR=${CERTS_DIR}
+DEPLOY_DIR=${DEPLOY_DIR}
+STAGING_DIR=${STAGING_DIR}
+REPOSITORY_DIR=${REPOSITORY_DIR}
+REPO_PACKAGES_DIR="packages.main"
+IMAGES_DIR=${IMAGES_DIR}
+EOF
+}
+
+config_usage() {
+    echo <<EOF 
+Deployment command:
+  Options: [-t template-name] [-s shared-sstate-dir] [-b branch]
+    -t: template name used for OE build config files temlate, default is the default
+    -s: select an external sstate directory to use, default is per build_id sstate
+    -b: branch to tag/use for the OpenXT repositories, default is build
+EOF
+}
+
+# This generates the conf, so can run without
+config_need_conf() { return 1; }
+
+config_main() {
+    local template="master"
+    local branch="build"
+    local sstate_dir="${BUILD_DIR}/sstate-cache"
+
+    while getopts ":t:s:b:" opt; do
+        case ${opt} in
+        t)
+            template=${OPTARG}
+            ;;
+        s)
+            sstate_dir=${OPTARG}
+            ;;
+        b)
+            branch=${OPTARG}
+            ;;
+        *)
+            config_usage
+            exit 1
+            ;;
+        esac
+    done
+
+    shift $((${OPTIND} - 1))
+
+    CONF_DIR="${BUILD_DIR}/conf"
+    DEPLOY_DIR="${BUILD_DIR}/deploy"
+    STAGING_DIR="${BUILD_DIR}/staging"
+    REPOSITORY_DIR="${STAGING_DIR}/repository"
+    REPO_PACKAGES_DIR="packages.main"
+    IMAGES_DIR="${DEPLOY_DIR}/images"
+
+    mkdir -p "${CONF_DIR}"
+
+    for f in bblayers.conf local.conf openxt.conf build-manifest image-manifest site.conf; do
+        config_copy_template ${template} ${f}
+    done
+    config_generate_auto ${branch} ${sstate_dir}
+
+    pushd ${TOP} >/dev/null
+    repo start "${branch}" openxt/*
+    popd >/dev/null
+
+    config_generate_env_file
+    config_generate_bordel_config
+}

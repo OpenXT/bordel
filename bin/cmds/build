@@ -1,0 +1,40 @@
+#! /bin/bash
+
+
+# Usage: build_describe
+# Display description for this command wrapper.
+build_describe() {
+    echo "Build all the images of the OpenXT project using bitbake."
+}
+
+build_need_conf() { return 0; }
+
+# Usage: build [mode]
+# Build all the images of the OpenXT project using bitbake using the
+# build-manifest file in CONF_DIR.
+# modes:
+#   clean: Run "cleanall" on the image recipe before building it.
+build_main() {
+    local mode=$1
+
+    # Overwrite the build timestamp.
+    echo "OPENXT_BUILD_DATE=\"$(date '+%T %D')\"" > ${CONF_DIR}/openxt-build-date.conf
+    while read l ; do
+        if [ -z "${l%%#*}" ]; then
+            continue
+        fi
+
+        local entry=(${l})
+        local machine="${entry[0]}"
+        local image="${entry[1]}"
+
+        if [ "${mode}" = "clean" ]; then
+            MACHINE="${machine}" bitbake -c cleanall "${image}"
+        fi
+        if ! MACHINE="${machine}" bitbake "${image}" ; then
+            echo "MACHINE="${machine}" bitbake \"${image}\" failed." >&2
+            break
+        fi
+
+    done < "${CONF_DIR}/build-manifest"
+}

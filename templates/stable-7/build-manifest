@@ -1,0 +1,11 @@
+# Format:
+# <MACHINE> <target-image-recipe>
+#
+xenclient-dom0 xenclient-initramfs-image
+xenclient-dom0 xenclient-installer-image
+xenclient-dom0 xenclient-installer-part2-image
+xenclient-stubdomain xenclient-stubdomain-initramfs-image
+xenclient-dom0 xenclient-dom0-image
+xenclient-uivm xenclient-uivm-image
+xenclient-ndvm xenclient-ndvm-image
+xenclient-syncvm xenclient-syncvm-image

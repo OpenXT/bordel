@@ -1,0 +1,345 @@
+#! /bin/bash
+
+stage_sign_repository() {
+    if [ ! -f "${REPOSITORY_DIR}/XC-PACKAGES" ]; then
+        echo "Repository in \`${REPOSITORY_DIR}' is not ready yet, XC-PACKAGES is missing." >&2
+        return 1
+    fi
+
+    local xc_package_sha256=($(sha256sum "${REPOSITORY_DIR}/XC-PACKAGES"))
+    # This file seems to be used, amongst other things, for signing the "repository".
+    # Due to the signing process, it needs to have a fixed size, and somehow
+    # 1MB is that size...
+    # TODO: Discombobulate that...
+    set +o pipefail
+    {
+        cat <<EOF
+xc:main
+pack:Base Pack
+product:OpenXT
+build:${OPENXT_BUILD_ID}
+version:${OPENXT_VERSION}
+release:${OPENXT_RELEASE}
+upgrade-from:${OPENXT_UPGRADEABLE_RELEASES}
+packages:${xc_package_sha256}
+EOF
+        yes ""
+    } | head -c $((1024 * 1024)) > "${REPOSITORY_DIR}/XC-REPOSITORY"
+    set -o pipefail
+
+    openssl smime -sign \
+        -aes256 \
+        -binary \
+        -in "${REPOSITORY_DIR}/XC-REPOSITORY" \
+        -out "${REPOSITORY_DIR}/XC-SIGNATURE" \
+        -outform PEM \
+        -signer "${CERTS_DIR}/dev-cacert.pem" \
+        -inkey "${CERTS_DIR}/dev-cakey.pem"
+}
+
+# Usage: stage_build_output source destination
+# Copy a build output from its deployed location (IMAGES_DIR) to the staging
+# directory (STAGING_DIR)
+stage_build_output() {
+    local src="${IMAGES_DIR}/$1"
+    local dst="${STAGING_DIR}/$2"
+
+    if [ $# -ne 2 -a ! -e "${src}" ]; then
+        echo "${src} is not ready yet." >&2
+        return 1
+    fi
+    mkdir -p `dirname ${dst}`
+    echo "cp -ruv -L -T ${src} ${dst}"
+    cp -ruv -L -T "${src}" "${dst}"
+}
+
+# Usage: stage_build_output_by_suffix source suffix destination
+# Copy a set of build output matching *suffix from their deployed location
+# (IMAGES_DIR) to the staging directory (STAGING_DIR).
+stage_build_output_by_suffix() {
+    local dst="${STAGING_DIR}/$3"
+
+    mkdir -p "${dst}"
+
+    for f in "${IMAGES_DIR}/${1}"*"${2}"; do
+        if [ ! -e "${f}" ]; then
+            echo "${f} is not ready yet." >&2
+            break
+        fi
+        cp -ruv -L "${f}" "${dst}/`basename ${f}`"
+    done
+}
+
+# Usage: stage_repository_entry machine image-identifier source-image-name destination-image-name image-mount-point
+# Copy an bitbake assembled image, for a given machine, from the deployment
+# directory (DEPLOY_DIR) to the repository staging location (REPOSITORY_DIR),
+# then fill the metadata in the repository XC-PACKAGES files.
+stage_repository_entry() {
+    local machine="$1"
+    local id="$2"
+    local src="$3"
+    local dst="$4"
+    local mnt="$5"
+
+    if ! stage_build_output "${machine}/${src}" "${REPOSITORY_DIR}/${REPO_PACKAGES_DIR}/${dst}" ; then
+        return 1
+    fi
+
+    local size=($(du -b "${REPOSITORY_DIR}/${dst}"))
+    local sha256=($(sha256sum "${REPOSITORY_DIR}/${dst}"))
+    local format=""
+    case "${dst}" in
+        *.tar.bz2) format="tarbz2";;
+        *.ext3.gz) format="ext3gz";;
+        *.vhd.gz) format="vhdgz";;
+        *)
+            echo "Unknown format for image ${dst}."
+            return 1
+            ;;
+    esac
+
+    if [ -f "${REPOSITORY_DIR}/XC-PACKAGES" ] && grep -q "^${id} " "${REPOSITORY_DIR}/XC-PACKAGES" ; then
+        sed -i -e "s%^${id}.\+%${id} ${size} ${sha256} ${format} required ${dst} ${mnt}%" "${REPOSITORY_DIR}/XC-PACKAGES"
+    else
+        echo "${id} ${size} ${sha256} ${format} required ${dst} ${mnt}" >> "${REPOSITORY_DIR}/XC-PACKAGES"
+    fi
+}
+
+# Usage: stage_repository
+# Copy images from the deployment directory (DEPLOY_DIR) to the repository
+# staging area (REPOSITORY_DIR) then use the generated metadata to sign the
+# repository.
+# Uses the images-manifest file in conf_dir to prepare the images.
+stage_repository() {
+    while read l; do
+        # Quick parsing/formating.
+        if [ -z "${l%%#*}" ]; then
+            continue
+        fi
+        entry=(${l})
+        machine="${entry[0]}"
+        img_id="${entry[1]}"
+        img_src_label="${entry[2]}"
+        img_type="${entry[3]}"
+        img_dst_label="${entry[4]}"
+        img_dst_mnt="${entry[5]}"
+
+        img_src_name="${img_src_label}-${machine}.${img_type}"
+        img_dst_name="${img_dst_label}.${img_type}"
+
+        stage_repository_entry "${machine}" "${img_id}" "${img_src_name}" "${img_dst_name}" "${img_dst_mnt}"
+    done < ${conf_dir}/images-manifest
+
+    stage_sign_repository
+}
+
+# Usage: stage_iso <machine>
+# Copy images from the deployment directory (DEPLOY_DIR) of the installer
+# machine to the iso staging area (STAGING_DIR) that are specific to ISO image
+# generation.
+stage_iso() {
+    local machine="$1"
+    local isolinux_subdir="iso/isolinux"
+    # TODO: Well this is ugly.
+    local image_name="xenclient-installer-image-${machine}"
+    local iso_src_path="${machine}/${image_name}/iso"
+
+    if ! command_sane "/sbin/mkfs" "util-linux" ||
+       ! command_sane "mmd" "mtools" ||
+       ! command_sane "mcopy" "mtools"; then
+        return 1
+    fi
+
+    # --- Stage installer bulk files.
+    stage_build_output "${iso_src_path}" "${isolinux_subdir}"
+
+    # --- Ammend isolinux configuration for that image.
+    # Changing the staging is fine as it will be overwritten for every
+    # "stage_iso" command.
+    sed -i -e "s#[$]OPENXT_VERSION#${OPENXT_VERSION}#g" "${STAGING_DIR}/${isolinux_subdir}/bootmsg.txt"
+    sed -i -e "s#[$]OPENXT_BUILD_ID#${OPENXT_BUILD_ID}#g" "${STAGING_DIR}/${isolinux_subdir}/bootmsg.txt"
+
+    # --- Stage installer initrd.
+    local initrd_type="cpio.gz"
+    local initrd_src_path="${machine}/${image_name}.${initrd_type}"
+    local initrd_dst_name="rootfs.gz"
+    local initrd_dst_path="${isolinux_subdir}/${initrd_dst_name}"
+
+    stage_build_output "${initrd_src_path}" "${initrd_dst_path}"
+
+    # --- Stage netboot directory.
+    local netboot_src_path="${machine}/${image_name}/netboot"
+    local netboot_dst_path="${isolinux_subdir}/netboot"
+
+    stage_build_output "${netboot_src_path}" "${netboot_dst_path}"
+
+    # --- Stage kernel.
+    local kernel_type="bzImage"
+    local kernel_src_path="${machine}/${kernel_type}-${machine}.bin"
+    local kernel_dst_path="${isolinux_subdir}/vmlinuz"
+
+    stage_build_output "${kernel_src_path}" "${kernel_dst_path}"
+
+    # --- Stage hypervisor.
+    local hv_src_path="${machine}/xen.gz"
+    local hv_dst_path="${isolinux_subdir}/xen.gz"
+
+    stage_build_output "${hv_src_path}" "${hv_dst_path}"
+
+    # --- Stage tboot.
+    local tboot_src_path="${machine}/tboot.gz"
+    local tboot_dst_path="${isolinux_subdir}/tboot.gz"
+
+    stage_build_output "${tboot_src_path}" "${tboot_dst_path}"
+
+    # --- Stage ACMs & license.
+    local acms_src_dir="${machine}/"
+    local acms_src_suffix=".acm"
+    local acms_dst_path="${isolinux_subdir}"
+
+    stage_build_output_by_suffix "${acms_src_dir}" "${acms_src_suffix}" "${acms_dst_path}"
+
+    local lic_src_path="${machine}/license-SINIT-ACMs.txt"
+    local lic_dst_path="${isolinux_subdir}/license-SINIT-ACMs.txt"
+
+    stage_build_output "${lic_src_path}" "${lic_dst_path}"
+
+    # --- Stage microcode.
+    local uc_src_path="${machine}/microcode_intel.bin"
+    local uc_dst_path="${isolinux_subdir}/microcode_intel.bin"
+
+    stage_build_output "${uc_src_path}" "${uc_dst_path}"
+
+    # --- Create the EFI boot partition in the staging area.
+
+    local efi_img="${STAGING_DIR}/${isolinux_subdir}/efiboot.img"
+    local efi_path=$(mktemp -d)
+
+    rm -f ${efi_img}
+    mkdir -p "$(dirname "${efi_img}")"
+    dd if=/dev/zero bs=1M count=5 of="${efi_img}"
+    /sbin/mkfs -t fat "${efi_img}"
+    mmd -i ${efi_img} EFI
+    mmd -i ${efi_img} EFI/BOOT
+
+    # The grub efi binary ends up with two different names depedning on 32bit
+    # or 64bit build. To aviod having to attempt to determine what kind of
+    # build was used, copy the 32bit named version if it exists and then
+    # overwrite with 64bit named version if it exists.
+    [ -e "${images_dir}/${machine}/grubx64.efi" ] &&
+        mcopy -i "${efi_img}" "${images_dir}/${machine}/grubx64.efi" ::EFI/BOOT/BOOTX64.EFI
+    [ -e "${images_dir}/${machine}/grub-efi-bootx64.efi" ] &&
+        mcopy -i "${efi_img}" "${images_dir}/${machine}/grub-efi-bootx64.efi" ::EFI/BOOT/BOOTX64.EFI
+
+    # --- Stage hybrid MBR image.
+    local isohdp_src="${machine}/isohdpfx.bin"
+    local isohdp_dst="${isolinux_subdir}/isohdpfx.bin"
+
+    # Only post stable-8 with UEFI & xorriso.
+    if [ -e "${IMAGES_DIR}/${isohdp_src}" ]; then
+        stage_build_output "${isohdp_src}" "${isohdp_dst}"
+    fi
+}
+
+# Usage: stage_pxe <machine>
+# Copy images from the deployment directory (DEPLOY_DIR) of the installer
+# machine to the pxe staging area (STAGING_DIR).
+stage_pxe() {
+    local machine="$1"
+    local pxe_subdir="pxe"
+    # TODO: Well this is ugly.
+    local image_name="xenclient-installer-image-${machine}"
+
+    # --- Stage installer bulk files.
+    local pxe_src_path="${machine}/${image_name}/netboot/"
+    local pxe_src_suffix=".ans"
+    stage_build_output_by_suffix "${pxe_src_path}" "${pxe_src_suffix}" "${pxe_subdir}"
+
+    # --- Stage installer initrd.
+    local initrd_type="cpio.gz"
+    local initrd_src_path="${machine}/${image_name}.${initrd_type}"
+    local initrd_dst_name="rootfs.gz"
+    local initrd_dst_path="${pxe_subdir}/${initrd_dst_name}"
+
+    stage_build_output "${initrd_src_path}" "${initrd_dst_path}"
+
+    # --- Stage kernel.
+    local kernel_type="bzImage"
+    local kernel_src_path="${machine}/${kernel_type}-${machine}.bin"
+    local kernel_dst_path="${pxe_subdir}/vmlinuz"
+
+    stage_build_output "${kernel_src_path}" "${kernel_dst_path}"
+
+    # --- Stage hypervisor.
+    local hv_src_path="${machine}/xen.gz"
+    local hv_dst_path="${pxe_subdir}/xen.gz"
+
+    stage_build_output "${hv_src_path}" "${hv_dst_path}"
+
+    # --- Stage tboot.
+    local tboot_src_path="${machine}/tboot.gz"
+    local tboot_dst_path="${pxe_subdir}/tboot.gz"
+
+    stage_build_output "${tboot_src_path}" "${tboot_dst_path}"
+
+    # --- Stage ACMs & license.
+    local acms_src_dir="${machine}/"
+    local acms_src_suffix=".acm"
+    local acms_dst_path="${pxe_subdir}"
+
+    stage_build_output_by_suffix "${acms_src_dir}" "${acms_src_suffix}" "${acms_dst_path}"
+
+    local lic_src_path="${machine}/license-SINIT-ACMs.txt"
+    local lic_dst_path="${pxe_subdir}/license-SINIT-ACMs.txt"
+
+    stage_build_output "${lic_src_path}" "${lic_dst_path}"
+
+    # --- Stage microcode.
+    local uc_src_path="${machine}/microcode_intel.bin"
+    local uc_dst_path="${pxe_subdir}/microcode_intel.bin"
+
+    stage_build_output "${uc_src_path}" "${uc_dst_path}"
+}
+
+# Usage: stage_describe
+# Display description for this command wrapper.
+stage_describe() {
+    echo "Create the staging layout from the build outputs. This is called by \`deploy' automatically."
+}
+
+# Usage: stage_usage
+# Display usage for this command wrapper.
+stage_usage() {
+    echo "Stagging command list:"
+    echo "  iso-old: Copy BIOS/ISO installer related build results, from Bitbake deployment directory to the staging area."
+    echo "  iso: Copy EFI/ISO installer related build results, from Bitbake deployment directory to the staging area."
+    echo "  pxe-old: Copy PXE files for the installer from Bitbake deployment directory to the staging area."
+    echo "  pxe: Copy PXE files for the installer from Bitbake deployment directory to the staging area."
+    echo "  repository: Copy build results from Bitbake deployment directory to the staging area and update the relevant meta-data."
+    exit $1
+}
+
+stage_need_conf() { return 0; }
+
+# Usage: stage <command>
+# Stage commands wrapper.
+stage_main() {
+    target="$1"
+    shift 1
+    case "${target}" in
+        "iso-old") check_cmd_version "${target}"
+                   stage_iso xenclient-dom0 ;;
+        "iso") check_cmd_version "${target}"
+               stage_iso openxt-installer ;;
+        "pxe-old") check_cmd_version "${target}"
+                   stage_pxe xenclient-dom0 ;;
+        "pxe") check_cmd_version "${target}"
+               stage_pxe openxt-installer ;;
+        "repository") stage_repository ;;
+        "help") stage_usage 0 ;;
+        *)  echo "Unknown staging command \`${target}'." >&2
+            stage_usage 1
+            ;;
+    esac
+}
+

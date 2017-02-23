@@ -1,0 +1,84 @@
+#! /bin/bash
+
+# Usage: command_sane <command> <package>
+# Verify that command exists in the current environment (builtin, alias or
+# executable) or display an error message with the recommended package
+# providing it on stderr and return 1.
+command_sane() {
+    local cmd="$1"
+    local pkg="$2"
+
+    if ! command -v "$1" >/dev/null; then
+        echo "Cannot find \"${cmd}\" command. Install ${pkg} to use this script." >&2
+        return 1
+    fi
+    return 0
+}
+
+# Usage: check_cmd_version
+# Compares stage/deploy command against OpenXT version and abort if support is
+# no longer provided.
+check_cmd_version() {
+    local cmd="$1"
+
+    # Ignore development/hacked versions.
+    if [ "${OPENXT_VERSION}" = "0.0.0" -o -z "${OPENXT_VERSION}" ]; then
+        return 0
+    fi
+    if [ "${OPENXT_VERSION%%.*}" -ge "8" ]; then
+        case "${cmd}" in
+            *"-old")
+                echo "\`${cmd}' is no longer supported with OpenXT 8 and later versions. See \`${cmd%%-old}' command replacement." >&2
+                exit 1 ;;
+            *) return 0 ;;
+        esac
+    else
+        case "${cmd}" in
+            *"-old") return 0 ;;
+            "*") echo "\`${cmd}' is not supported with OpenXT 7 and earlier versions. See \`${cmd}-old' legacy support." >&2
+               exit 1 ;;
+        esac
+    fi
+}
+
+register_cmds() {
+    local cmd_dir=${1}
+    local cmds=$(ls ${cmd_dir} | sed -e 's/~.*//g')
+
+    for c in ${cmds}; do
+        . ${cmd_dir}/${c}
+        if command -v "${c}_dependency" >/dev/null; then
+            for d in $(eval "${c}_dependency"); do
+                if [ ! -z "${cmds##*${d}*}" ]; then
+                    echo "Command ${c} depends on command ${d} which is not currently installed." >&2
+                    continue
+                fi
+            done
+        fi
+
+        _CMDS="${_CMDS} ${c}"
+    done
+}
+
+describe_cmds() {
+    for c in ${_CMDS}; do
+        if command -v "${c}_describe" >/dev/null; then
+            echo -e "  ${c}:\t$(eval "${c}_describe")"
+        else
+            echo -e "  ${c}:\tis available but provides no description."
+        fi
+    done
+}
+
+call_cmd() {
+    local cmd=${1}
+    shift 1
+
+    if [ -z "${_CMDS##*${cmd}*}" ]; then
+        eval "${cmd}_main $@"
+        return 0
+    else
+        echo "Unknown command ${cmd} attempted to be called/" >&2
+        return 1
+    fi
+}
