@@ -149,8 +149,11 @@ config_main() {
 
     mkdir -p "${CONF_DIR}"
 
-    for f in bblayers.conf local.conf openxt.conf build-manifest image-manifest site.conf; do
-        config_copy_template ${template} ${f}
+    for f in bblayers.conf local.conf openxt.conf build-manifest images-manifest; do
+        if ! config_copy_template ${template} ${f}; then
+            echo "ERROR: Failed to copy template file ${template}/${f} to ${CONF_DIR}."
+            exit 1
+        fi
     done
     config_generate_auto ${branch} ${sstate_dir}
 
