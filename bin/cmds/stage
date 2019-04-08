@@ -72,7 +72,7 @@ stage_build_output_by_suffix() {
 
 # Usage: stage_repository_entry machine image-identifier source-image-name destination-image-name image-mount-point
 # Copy an bitbake assembled image, for a given machine, from the deployment
-# directory (DEPLOY_DIR) to the repository staging location (REPOSITORY_DIR),
+# directory (DEPLOY_DIR) to the repository staging location (STAGING_DIR),
 # then fill the metadata in the repository XC-PACKAGES files.
 stage_repository_entry() {
     local machine="$1"
@@ -81,7 +81,7 @@ stage_repository_entry() {
     local dst="$4"
     local mnt="$5"
 
-    if ! stage_build_output "${machine}/${src}" "${REPOSITORY_DIR}/${REPO_PACKAGES_DIR}/${dst}" ; then
+    if ! stage_build_output "${machine}/${src}" "repository/${REPO_PACKAGES_DIR}/${dst}" ; then
         return 1
     fi
 
