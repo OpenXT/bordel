@@ -3,10 +3,21 @@
 # Usage: certs_describe
 # Display description for this command wrapper.
 certs_describe() {
-    echo "Create self-signed certificates in \`${CERTS_DIR}', or link \`${CERTS_DIR}' to existing ones in [path]."
+    echo "Create self-signed certificates or linked existing ones."
 }
 
 certs_need_conf() { return 1; }
+
+certs_usage() {
+    cat - <<EOF
+Usage: certs [path]
+    Create self-signed certificates in ./certs or create a link from [path] to
+    ./certs to point to existing certificates.
+    Expected existing PEM X.509 certificates are:
+        - prod-cacert.pem
+        - dev-cacert.pem
+EOF
+}
 
 # Usage: certs [path]
 # Create self-signed certificates in ./certs or create a link from [path] to
@@ -16,6 +27,21 @@ certs_need_conf() { return 1; }
 # - dev-cacert.pem
 certs_main() {
     local path=$1
+
+    while getopts "h" opt; do
+        case "${opt}" in
+            h)
+                certs_usage
+                exit 0
+                ;;
+            *)
+                certs_usage
+                exit 1
+                ;;
+        esac
+    done
+
+    shift $((${OPTIND} - 1))
 
     if [ $# -eq 0 ]; then
         mkdir -p "${CERTS_DIR}" &&
