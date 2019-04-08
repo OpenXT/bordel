@@ -17,6 +17,7 @@ usage() {
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 REPO_DIR=$(cd $SCRIPT_DIR/..; pwd)
 TOP="${REPO_DIR}"
+CERTS_DIR=${CERTS_DIR:-"${REPO_DIR}/certs"}
 
 # Source in common functions
 . ${SCRIPT_DIR}/functions
@@ -62,8 +63,6 @@ if [ -e "${BUILD_DIR}/.putain" ]; then
 else
     CONFIGURED=false
 fi
-
-CERTS_DIR=${CERTS_DIR:-"${REPO_DIR}/certs"}
 
 if $(eval "${command}_need_conf") && ! $CONFIGURED; then
     echo "Did not find a configuration for Build ${BUILD_ID}, please run config command" >&2
