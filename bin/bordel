@@ -67,6 +67,7 @@ fi
 if $(eval "${command}_need_conf") && ! $CONFIGURED; then
     echo "Did not find a configuration for Build ${BUILD_ID}, please run config command" >&2
     usage 1
+    exit 1
 fi
 
 call_cmd ${command} $@
