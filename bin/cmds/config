@@ -143,8 +143,8 @@ config_main() {
     CONF_DIR="${BUILD_DIR}/conf"
     DEPLOY_DIR="${BUILD_DIR}/deploy"
     STAGING_DIR="${BUILD_DIR}/staging"
-    REPOSITORY_DIR="${STAGING_DIR}/repository"
     REPO_PACKAGES_DIR="packages.main"
+    REPOSITORY_DIR="${STAGING_DIR}/repository/${REPO_PACKAGES_DIR}"
     IMAGES_DIR="${DEPLOY_DIR}/images"
 
     mkdir -p "${CONF_DIR}"
