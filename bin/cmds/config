@@ -98,9 +98,10 @@ EOF
 }
 
 config_usage() {
-    echo <<EOF 
+    cat - <<EOF
 Deployment command:
-  Options: [-t template-name] [-s shared-sstate-dir] [-b branch]
+  Options: [-h] [-t template-name] [-s shared-sstate-dir] [-b branch]
+    -h: display this usage.
     -t: template name used for OE build config files temlate, default is the default
     -s: select an external sstate directory to use, default is per build_id sstate
     -b: branch to tag/use for the OpenXT repositories, default is build
@@ -115,7 +116,7 @@ config_main() {
     local branch="build"
     local sstate_dir="${BUILD_DIR}/sstate-cache"
 
-    while getopts ":t:s:b:" opt; do
+    while getopts ":t:s:b:h" opt; do
         case ${opt} in
         t)
             template=${OPTARG}
@@ -125,6 +126,10 @@ config_main() {
             ;;
         b)
             branch=${OPTARG}
+            ;;
+        h)
+            config_usage
+            exit 0
             ;;
         *)
             config_usage
