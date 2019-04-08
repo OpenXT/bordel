@@ -109,7 +109,7 @@ stage_repository_entry() {
 # Copy images from the deployment directory (DEPLOY_DIR) to the repository
 # staging area (REPOSITORY_DIR) then use the generated metadata to sign the
 # repository.
-# Uses the images-manifest file in conf_dir to prepare the images.
+# Uses the images-manifest file in CONF_DIR to prepare the images.
 stage_repository() {
     while read l; do
         # Quick parsing/formating.
@@ -127,8 +127,12 @@ stage_repository() {
         img_src_name="${img_src_label}-${machine}.${img_type}"
         img_dst_name="${img_dst_label}.${img_type}"
 
-        stage_repository_entry "${machine}" "${img_id}" "${img_src_name}" "${img_dst_name}" "${img_dst_mnt}"
-    done < ${conf_dir}/images-manifest
+        if ! stage_repository_entry "${machine}" "${img_id}" \
+            "${img_src_name}" "${img_dst_name}" "${img_dst_mnt}"; then
+            echo "ERROR: Failed to stage image ${img_src_name}"
+            return 1
+        fi
+    done < ${CONF_DIR}/images-manifest
 
     stage_sign_repository
 }
