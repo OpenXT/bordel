@@ -227,13 +227,15 @@ stage_iso() {
     mmd -i ${efi_img} EFI/BOOT
 
     # The grub efi binary ends up with two different names depedning on 32bit
-    # or 64bit build. To aviod having to attempt to determine what kind of
+    # or 64bit build. To avoid having to attempt to determine what kind of
     # build was used, copy the 32bit named version if it exists and then
     # overwrite with 64bit named version if it exists.
-    [ -e "${images_dir}/${machine}/grubx64.efi" ] &&
-        mcopy -i "${efi_img}" "${images_dir}/${machine}/grubx64.efi" ::EFI/BOOT/BOOTX64.EFI
-    [ -e "${images_dir}/${machine}/grub-efi-bootx64.efi" ] &&
-        mcopy -i "${efi_img}" "${images_dir}/${machine}/grub-efi-bootx64.efi" ::EFI/BOOT/BOOTX64.EFI
+    if [ -e "${IMAGES_DIR}/${machine}/grubx64.efi" ]; then
+        mcopy -v -i "${efi_img}" "${IMAGES_DIR}/${machine}/grubx64.efi" ::EFI/BOOT/BOOTX64.EFI
+    fi
+    if [ -e "${IMAGES_DIR}/${machine}/grub-efi-bootx64.efi" ]; then
+        mcopy -v -i "${efi_img}" "${IMAGES_DIR}/${machine}/grub-efi-bootx64.efi" ::EFI/BOOT/BOOTX64.EFI
+    fi
 
     # --- Stage hybrid MBR image.
     local isohdp_src="${machine}/isohdpfx.bin"
