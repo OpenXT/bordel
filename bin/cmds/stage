@@ -314,12 +314,16 @@ stage_describe() {
 # Usage: stage_usage
 # Display usage for this command wrapper.
 stage_usage() {
-    echo "Stagging command list:"
-    echo "  iso-old: Copy BIOS/ISO installer related build results, from Bitbake deployment directory to the staging area."
-    echo "  iso: Copy EFI/ISO installer related build results, from Bitbake deployment directory to the staging area."
-    echo "  pxe-old: Copy PXE files for the installer from Bitbake deployment directory to the staging area."
-    echo "  pxe: Copy PXE files for the installer from Bitbake deployment directory to the staging area."
-    echo "  repository: Copy build results from Bitbake deployment directory to the staging area and update the relevant meta-data."
+    cat - <<EOF
+Usage: stage <command> ...
+    Run a stage command to populate STAGING_DIR with the build outputs.
+Stage Commands:
+    iso-old: Copy BIOS/ISO installer related build results, from Bitbake deployment directory to the staging area.
+    iso: Copy EFI/ISO installer related build results, from Bitbake deployment directory to the staging area.
+    pxe-old: Copy PXE files for the installer from Bitbake deployment directory to the staging area.
+    pxe: Copy PXE files for the installer from Bitbake deployment directory to the staging area.
+    repository: Copy build results from Bitbake deployment directory to the staging area and update the relevant meta-data.
+EOF
     exit $1
 }
 
