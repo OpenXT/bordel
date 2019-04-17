@@ -328,22 +328,22 @@ stage_need_conf() { return 0; }
 # Usage: stage <command>
 # Stage commands wrapper.
 stage_main() {
-    target="$1"
-    shift 1
-    case "${target}" in
-        "iso-old") check_cmd_version "${target}"
-                   stage_iso xenclient-dom0 ;;
-        "iso") check_cmd_version "${target}"
-               stage_iso openxt-installer ;;
-        "pxe-old") check_cmd_version "${target}"
-                   stage_pxe xenclient-dom0 ;;
-        "pxe") check_cmd_version "${target}"
-               stage_pxe openxt-installer ;;
-        "repository") stage_repository ;;
-        "help") stage_usage 0 ;;
-        *)  echo "Unknown staging command \`${target}'." >&2
-            stage_usage 1
-            ;;
-    esac
+    for target in $@; do
+        case "${target}" in
+            "iso-old") check_cmd_version "${target}"
+                       stage_iso xenclient-dom0 ;;
+            "iso") check_cmd_version "${target}"
+                   stage_iso openxt-installer ;;
+            "pxe-old") check_cmd_version "${target}"
+                       stage_pxe xenclient-dom0 ;;
+            "pxe") check_cmd_version "${target}"
+                   stage_pxe openxt-installer ;;
+            "repository") stage_repository ;;
+            "help") stage_usage 0 ;;
+            *)  echo "Unknown staging command \`${target}'." >&2
+                stage_usage 1
+                ;;
+        esac
+    done
 }
 
