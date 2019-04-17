@@ -1,0 +1,15 @@
+# Format:
+# <MACHINE> <image-id> <source-label> <image-type> <destination-label> <mount-point>
+# MACHINE: Machine name as seen by Bitbake/OE
+# image-id: Image identifier, used in XC-PACKAGES metadata.
+# source-label: Label used to name the built image by Bitbake, usually the name of the recipe that built the image.
+# image-type: The format used for this image.
+# destination-label: Label used to name the image in the destination repository hierarchy (usually <image-id>-rootfs).
+# mount-point: Mount point of the image when deployed on a target.
+#
+openxt-installer control xenclient-installer-part2-image tar.bz2 control /
+upgrade-compat upgrade-compat xenclient-upgrade-compat-image ext3.gz upgrade-compat-rootfs /
+xenclient-dom0 dom0 xenclient-dom0-image ext3.gz dom0-rootfs /
+xenclient-uivm uivm xenclient-uivm-image ext3.vhd.gz uivm-rootfs /storage/uivm
+xenclient-ndvm ndvm xenclient-ndvm-image ext3.disk.vhd.gz ndvm-rootfs /storage/ndvm
+xenclient-syncvm syncvm xenclient-syncvm-image ext3.vhd.gz syncvm-rootfs /storage/syncvm
