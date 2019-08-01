@@ -227,13 +227,15 @@ stage_iso() {
     mmd -i ${efi_img} EFI/BOOT
 
     # The grub efi binary ends up with two different names depedning on 32bit
-    # or 64bit build. To aviod having to attempt to determine what kind of
+    # or 64bit build. To avoid having to attempt to determine what kind of
     # build was used, copy the 32bit named version if it exists and then
     # overwrite with 64bit named version if it exists.
-    [ -e "${images_dir}/${machine}/grubx64.efi" ] &&
-        mcopy -i "${efi_img}" "${images_dir}/${machine}/grubx64.efi" ::EFI/BOOT/BOOTX64.EFI
-    [ -e "${images_dir}/${machine}/grub-efi-bootx64.efi" ] &&
-        mcopy -i "${efi_img}" "${images_dir}/${machine}/grub-efi-bootx64.efi" ::EFI/BOOT/BOOTX64.EFI
+    if [ -e "${IMAGES_DIR}/${machine}/grubx64.efi" ]; then
+        mcopy -v -i "${efi_img}" "${IMAGES_DIR}/${machine}/grubx64.efi" ::EFI/BOOT/BOOTX64.EFI
+    fi
+    if [ -e "${IMAGES_DIR}/${machine}/grub-efi-bootx64.efi" ]; then
+        mcopy -v -i "${efi_img}" "${IMAGES_DIR}/${machine}/grub-efi-bootx64.efi" ::EFI/BOOT/BOOTX64.EFI
+    fi
 
     # --- Stage hybrid MBR image.
     local isohdp_src="${machine}/isohdpfx.bin"
@@ -314,12 +316,16 @@ stage_describe() {
 # Usage: stage_usage
 # Display usage for this command wrapper.
 stage_usage() {
-    echo "Stagging command list:"
-    echo "  iso-old: Copy BIOS/ISO installer related build results, from Bitbake deployment directory to the staging area."
-    echo "  iso: Copy EFI/ISO installer related build results, from Bitbake deployment directory to the staging area."
-    echo "  pxe-old: Copy PXE files for the installer from Bitbake deployment directory to the staging area."
-    echo "  pxe: Copy PXE files for the installer from Bitbake deployment directory to the staging area."
-    echo "  repository: Copy build results from Bitbake deployment directory to the staging area and update the relevant meta-data."
+    cat - <<EOF
+Usage: stage <command> ...
+    Run a stage command to populate STAGING_DIR with the build outputs.
+Stage Commands:
+    iso-old: Copy BIOS/ISO installer related build results, from Bitbake deployment directory to the staging area.
+    iso: Copy EFI/ISO installer related build results, from Bitbake deployment directory to the staging area.
+    pxe-old: Copy PXE files for the installer from Bitbake deployment directory to the staging area.
+    pxe: Copy PXE files for the installer from Bitbake deployment directory to the staging area.
+    repository: Copy build results from Bitbake deployment directory to the staging area and update the relevant meta-data.
+EOF
     exit $1
 }
 
@@ -328,22 +334,22 @@ stage_need_conf() { return 0; }
 # Usage: stage <command>
 # Stage commands wrapper.
 stage_main() {
-    target="$1"
-    shift 1
-    case "${target}" in
-        "iso-old") check_cmd_version "${target}"
-                   stage_iso xenclient-dom0 ;;
-        "iso") check_cmd_version "${target}"
-               stage_iso openxt-installer ;;
-        "pxe-old") check_cmd_version "${target}"
-                   stage_pxe xenclient-dom0 ;;
-        "pxe") check_cmd_version "${target}"
-               stage_pxe openxt-installer ;;
-        "repository") stage_repository ;;
-        "help") stage_usage 0 ;;
-        *)  echo "Unknown staging command \`${target}'." >&2
-            stage_usage 1
-            ;;
-    esac
+    for target in $@; do
+        case "${target}" in
+            "iso-old") check_cmd_version "${target}"
+                       stage_iso xenclient-dom0 ;;
+            "iso") check_cmd_version "${target}"
+                   stage_iso openxt-installer ;;
+            "pxe-old") check_cmd_version "${target}"
+                       stage_pxe xenclient-dom0 ;;
+            "pxe") check_cmd_version "${target}"
+                   stage_pxe openxt-installer ;;
+            "repository") stage_repository ;;
+            "help") stage_usage 0 ;;
+            *)  echo "Unknown staging command \`${target}'." >&2
+                stage_usage 1
+                ;;
+        esac
+    done
 }
 
