@@ -36,7 +36,7 @@ docker_enter() {
     fi
 
     docker run --rm -it --security-opt seccomp=unconfined \
-        -v "${REPO_DIR}:/home/${user}/openxt" \
+        -v "${TOP}:/home/${user}/openxt" \
         -v "${HOME}/.ssh:/home/${user}/.ssh" \
         -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
         -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
@@ -78,7 +78,7 @@ docker_usage() {
 docker_need_conf() { return 1; }
 
 docker_main() {
-    local manifest_dir="${REPO_DIR}/.repo/manifests"
+    local manifest_dir="${TOP}/.repo/manifests"
     local dockerfiles="${manifest_dir}/Dockerfiles"
 
     command_sane "docker" "docker-ce"

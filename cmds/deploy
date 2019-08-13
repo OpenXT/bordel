@@ -148,11 +148,21 @@ deploy_dependecy() {
 # Usage: deploy_usage
 # Display usage for this command wrapper.
 deploy_usage() {
-    echo "Deployment command list:"
-    echo "  iso-old: Create a BIOS/MBR bootable ISO hybrid image of an OpenXT installer (can be dd'ed on a thumbdrive). This installeris available until OpenXT 7."
-    echo "  iso: Create an EFI bootable ISO hybrid image of an OpenXT installer (can be dd'ed on a thumbdrive). This installer is available starting with OpenXT 8."
-    echo "  pxe-old: Copy a PXE compatible OpenXT installer to the given [<tftp-user>@]<tftp-server>:<tftp-path> tftp server, and setup the installer to fetch repository from <repo-uri>."
-    echo "  pxe: Copy a PXE compatible OpenXT installer to the given [<tftp-user>@]<tftp-server>:<tftp-path> tftp server, and setup the installer to fetch repository from <repo-uri>."
+    cat <<End-of-usage
+Deployment command list:
+    iso-old: Create a BIOS/MBR bootable ISO hybrid image of an OpenXT
+             installer (can be dd'ed on a thumbdrive). This installer
+             is available until OpenXT 7
+        iso: Create an EFI bootable ISO hybrid image of an OpenXT
+             installer (can be dd'ed on a thumbdrive). This installer
+             is available starting with OpenXT 8
+    pxe-old: Copy a PXE compatible OpenXT installer to the given
+             [<tftp-user>@]<tftp-server>:<tftp-path> tftp server, and
+             setup the installer to fetch repository from <repo-uri>
+        pxe: Copy a PXE compatible OpenXT installer to the given
+             [<tftp-user>@]<tftp-server>:<tftp-path> tftp server, and
+             setup the installer to fetch repository from <repo-uri>
+End-of-usage
     exit $1
 }
 
