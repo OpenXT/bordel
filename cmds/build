@@ -36,7 +36,7 @@ build_main() {
         fi
         if ! MACHINE="${machine}" bitbake "${image}" ; then
             echo "MACHINE="${machine}" bitbake \"${image}\" failed." >&2
-            break
+            return 1
         fi
 
     done < "${CONF_DIR}/build-manifest"
