@@ -60,7 +60,7 @@ docker_build() {
         -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
         -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
         -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
-        "${name}" "/home/${user}/openxt/bin/bordel" "build" "-i ${BUILD_ID}"
+        "${name}" "/home/${user}/openxt/openxt/bordel/bordel" "build" "-i ${BUILD_ID}"
 }
 
 # Usage: docker_usage
@@ -78,8 +78,8 @@ docker_usage() {
 docker_need_conf() { return 1; }
 
 docker_main() {
-    local manifest_dir="${TOP}/.repo/manifests"
-    local dockerfiles="${manifest_dir}/Dockerfiles"
+    local bordel_dir="${TOP}/openxt/bordel"
+    local dockerfiles="${bordel_dir}/Dockerfiles"
 
     command_sane "docker" "docker-ce"
     if [ ! $? ]; then
