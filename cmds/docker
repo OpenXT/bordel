@@ -63,6 +63,32 @@ docker_build() {
         "${name}" "/home/${user}/openxt/openxt/bordel/bordel" "build" "-i ${BUILD_ID}"
 }
 
+docker_deploy() {
+    local name=${1}
+    local type=${2}
+    local user=${3:-"build"}
+
+    if [ -z "${name}" ]; then
+        echo "please provide a container to enter"
+        return 1
+    fi
+
+    if [ -z "${type}" ]; then
+        echo "please provide a deploy type"
+        echo "see $0 deploy for more info"
+        return 1
+    fi
+
+    docker run --rm -it \
+	--security-opt seccomp=unconfined \
+        -v "${TOP}:/home/${user}/openxt" \
+        -v "${HOME}/.ssh:/home/${user}/.ssh" \
+        -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
+        -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
+        -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
+        "${name}" "/home/${user}/openxt/openxt/bordel/bordel" "-i" "${BUILD_ID}" "deploy" "${type}"
+}
+
 # Usage: docker_usage
 # Display usage for this command wrapper.
 docker_usage() {
@@ -71,6 +97,8 @@ docker_usage() {
     echo "  create {name} {file}: Creates Docker image as {name} using Dockerfile {file}" 
     echo "  enter {name} [user]: Enter an instance of {name} optionally as [user]"
     echo "  build {name} [user]: Run a build in an instance of {name} optionally as [user]"
+    echo "  deploy {name} {type} [user]: Deploy build files for {type} in {name} optionally as [user]"
+    echo "     * see $0 deploy for acceptable {type} values"
     exit $1
 }
 
@@ -100,6 +128,7 @@ docker_main() {
         "create") docker_create ${dockerfiles} $@ ;; 
         "enter") docker_enter $@ ;;
         "build") docker_build $@ ;;
+        "deploy") docker_deploy $@ ;;
         "help") docker_usage 0 ;;
         *) echo "Unknown docker command \`${cmd}'." >&2
            docker_usage 1
