@@ -101,7 +101,7 @@ BUILD_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 BBPATH="\${BUILD_DIR}/layers/bitbake/bin:"
 
-BB_ENV_EXTRAWHITE="MACHINE BUILD_UID LAYERS_DIR"
+BB_ENV_EXTRAWHITE="MACHINE DISTRO BUILD_UID LAYERS_DIR"
 LAYERS_DIR="\${BUILD_DIR}/layers"
 BUILDDIR="\${BUILD_DIR}"
 PATH=\$BBPATH\$(echo "\$PATH" | sed -e "s|:\$BBPATH|:|g" -e "s|^\$BBPATH||")
