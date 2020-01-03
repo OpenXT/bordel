@@ -126,6 +126,7 @@ Deployment command:
     -t: template name used for OE build config files temlate, default is the default
     -s: select an external sstate directory to use, default is per build_id sstate
     -b: branch to tag/use for the OpenXT repositories, default is build
+    --default: create the 'build' symlink to make this build directory the default one (see bordel -i).
 EOF
 }
 
