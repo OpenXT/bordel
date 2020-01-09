@@ -70,16 +70,17 @@ stage_build_output_by_suffix() {
     done
 }
 
-# Usage: stage_repository_entry machine image-identifier source-image-name destination-image-name image-mount-point
+# Usage: stage_repository_entry machine image-format image-identifier source-image-name destination-image-name image-mount-point
 # Copy an bitbake assembled image, for a given machine, from the deployment
 # directory (DEPLOY_DIR) to the repository staging location (STAGING_DIR),
 # then fill the metadata in the repository XC-PACKAGES files.
 stage_repository_entry() {
     local machine="$1"
     local id="$2"
-    local src="$3"
-    local dst="$4"
-    local mnt="$5"
+    local format="$3"
+    local src="$4"
+    local dst="$5"
+    local mnt="$6"
 
     if ! stage_build_output "${machine}/${src}" "repository/${REPO_PACKAGES_DIR}/${dst}" ; then
         return 1
@@ -87,22 +88,8 @@ stage_repository_entry() {
 
     local size=($(du -b "${REPOSITORY_DIR}/${dst}"))
     local sha256=($(sha256sum "${REPOSITORY_DIR}/${dst}"))
-    local format=""
-    case "${dst}" in
-        *.tar.bz2) format="tarbz2";;
-        *.ext3.gz) format="ext3gz";;
-        *.vhd.gz) format="vhdgz";;
-        *)
-            echo "Unknown format for image ${dst}."
-            return 1
-            ;;
-    esac
 
-    if [ -f "${REPOSITORY_DIR}/XC-PACKAGES" ] && grep -q "^${id} " "${REPOSITORY_DIR}/XC-PACKAGES" ; then
-        sed -i -e "s%^${id}.\+%${id} ${size} ${sha256} ${format} required ${dst} ${mnt}%" "${REPOSITORY_DIR}/XC-PACKAGES"
-    else
-        echo "${id} ${size} ${sha256} ${format} required ${dst} ${mnt}" >> "${REPOSITORY_DIR}/XC-PACKAGES"
-    fi
+    echo "${id} ${size} ${sha256} ${format} required ${dst} ${mnt}" >> "${REPOSITORY_DIR}/XC-PACKAGES"
 }
 
 # Usage: stage_repository
@@ -111,6 +98,9 @@ stage_repository_entry() {
 # repository.
 # Uses the images-manifest file in CONF_DIR to prepare the images.
 stage_repository() {
+    # Remove any previous repo manifest files
+    rm -f ${REPOSITORY_DIR}/XC-*
+
     while read l; do
         # Quick parsing/formating.
         if [ -z "${l%%#*}" ]; then
@@ -124,10 +114,33 @@ stage_repository() {
         img_dst_label="${entry[4]}"
         img_dst_mnt="${entry[5]}"
 
+        case "${img_type}" in
+            tar.bz2) img_format="tarbz2";;
+            ext3.gz) img_format="ext3gz";;
+            *.vhd.gz)
+                    if [ "${img_id}" = "file" ]; then
+                        img_format="gz"
+                    else
+                        img_format="vhdgz"
+                    fi
+                ;;
+            *.gz) img_format="gz" ;;
+            *) img_format="file" ;;
+        esac
+
         img_src_name="${img_src_label}-${machine}.${img_type}"
         img_dst_name="${img_dst_label}.${img_type}"
 
-        if ! stage_repository_entry "${machine}" "${img_id}" \
+        if [ "${img_id}" = "file" ]; then
+            img_dst_name="${img_dst_label}.${img_format}"
+            img_dst_mnt="${entry[5]}/${img_dst_label}"
+
+            if [ "${img_format}" = "file" ]; then
+                img_dst_name="${img_dst_label}"
+            fi
+        fi
+
+        if ! stage_repository_entry "${machine}" "${img_id}" "${img_format}" \
             "${img_src_name}" "${img_dst_name}" "${img_dst_mnt}"; then
             echo "ERROR: Failed to stage image ${img_src_name}"
             return 1
