@@ -28,14 +28,14 @@ build_main() {
         fi
 
         local entry=(${l})
-        local machine="${entry[0]}"
-        local image="${entry[1]}"
+        local image="${entry[0]}"
+        local env="${entry[@]:1}"
 
         if [ "${mode}" = "clean" ]; then
-            MACHINE="${machine}" bitbake -c cleanall "${image}"
+            eval ${env} bitbake -c cleanall "${image}"
         fi
-        if ! MACHINE="${machine}" bitbake "${image}" ; then
-            echo "MACHINE="${machine}" bitbake \"${image}\" failed." >&2
+        if ! eval ${env} bitbake "${image}" ; then
+            echo "${env} bitbake \"${image}\" failed." >&2
             return 1
         fi
 
