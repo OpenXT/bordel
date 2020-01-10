@@ -34,8 +34,10 @@ config_generate_dir() {
 
 config_generate_auto() {
     local branch="${1}"
+    local forced="${2}"
 
-    if [  -e "${TOP}/${BUILD_DIR}/${CONF_DIR}/auto.conf" ]; then
+    if [ -e "${TOP}/${BUILD_DIR}/${CONF_DIR}/auto.conf" ] && \
+       [ "${forced}" != "true" ]; then
         return
     fi
 
@@ -71,9 +73,11 @@ EOF
 config_copy_template() {
     local template="${1}"
     local file="${2}"
+    local forced="${3}"
     local critical_files="bblayers.conf local.conf openxt.conf"
 
-    if [ -e "${TOP}/${BUILD_DIR}/${CONF_DIR}/${file}" ]; then
+    if [ -e "${TOP}/${BUILD_DIR}/${CONF_DIR}/${file}" ] && \
+       [ "${forced}" != "true" ]; then
         return
     fi
 
@@ -84,8 +88,9 @@ config_copy_template() {
         fi
     fi
 
-    [ -e "${BORDEL_DIR}/templates/${template}/${file}" ] &&
-        cp -n "${BORDEL_DIR}/templates/${template}/${file}" "${TOP}/${BUILD_DIR}/${CONF_DIR}/${file}"
+    if [ -e "${BORDEL_DIR}/templates/${template}/${file}" ]; then
+        cp "${BORDEL_DIR}/templates/${template}/${file}" "${TOP}/${BUILD_DIR}/${CONF_DIR}/${file}"
+    fi
 }
 
 config_generate_env_file() {
@@ -127,6 +132,7 @@ Deployment command:
     -s: select an external sstate directory to use, default is per build_id sstate
     -b: branch to tag/use for the OpenXT repositories, default is build
     --default: create the 'build' symlink to make this build directory the default one (see bordel -i).
+    --force: overwrite any existing configuration if the build tree was already configured.
 EOF
 }
 
@@ -190,12 +196,12 @@ config_main() {
     fi
 
     for f in bblayers.conf local.conf openxt.conf build-manifest images-manifest; do
-        if ! config_copy_template "${template}" ${f}; then
+        if ! config_copy_template "${template}" "${f}" "${forced}"; then
             echo "ERROR: Failed to copy template file ${template}/${f} to ${CONF_DIR}."
             exit 1
         fi
     done
-    config_generate_auto "${branch}"
+    config_generate_auto "${branch}" "${forced}"
 
     pushd "${TOP}" >/dev/null
     repo start "${branch}" openxt/*
