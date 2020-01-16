@@ -45,8 +45,7 @@ RUN curl http://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/
 # Symlink for troublesome packages
 RUN ln -s /lib64/ld-linux-x86-64.so.2 /lib/
 
-RUN useradd -Ums /bin/bash -p $UNAME -u $UID $UNAME && \
-        usermod -aG sudo $UNAME
+RUN useradd -Ums /bin/bash -p $UNAME -G sudo -u $UID $UNAME
 
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
