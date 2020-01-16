@@ -29,7 +29,8 @@ RUN mkdir -p /tmp/ghc-prereq && cd /tmp/ghc-prereq && \
         cd /tmp && rm -rf /tmp/ghc-prereq
 
 # Install the required version of GHC
-RUN wget https://downloads.haskell.org/~ghc/6.12.3/ghc-6.12.3-x86_64-unknown-linux-n.tar.bz2 && \
+RUN cd /tmp && \
+	wget https://downloads.haskell.org/~ghc/6.12.3/ghc-6.12.3-x86_64-unknown-linux-n.tar.bz2 && \
         tar jxf ghc-6.12.3-x86_64-unknown-linux-n.tar.bz2 && \
         rm ghc-6.12.3-x86_64-unknown-linux-n.tar.bz2 && \
         cd ghc-6.12.3 && \
