@@ -161,7 +161,7 @@ stage_iso() {
     local image_name="xenclient-installer-image-${machine}"
     local iso_src_path="${machine}/${image_name}/iso"
 
-    if ! command_sane "/sbin/mkfs" "util-linux" ||
+    if ! command_sane "/sbin/mkfs.fat" "dosfstools" ||
        ! command_sane "mmd" "mtools" ||
        ! command_sane "mcopy" "mtools"; then
         return 1
@@ -235,7 +235,7 @@ stage_iso() {
     rm -f ${efi_img}
     mkdir -p "$(dirname "${efi_img}")"
     dd if=/dev/zero bs=1M count=5 of="${efi_img}"
-    /sbin/mkfs -t fat "${efi_img}"
+    /sbin/mkfs.fat "${efi_img}"
     mmd -i ${efi_img} EFI
     mmd -i ${efi_img} EFI/BOOT
 

@@ -75,6 +75,17 @@ deploy_iso() {
         "${STAGING_DIR}/repository"
 }
 
+# Usage: deploy_update
+# Run the required staging steps and generate the update tarball
+deploy_update() {
+    # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
+    # meta files.
+    call_cmd "stage" "repository"
+
+    tar -C "${STAGING_DIR}/repository" \
+        -cf "${DEPLOY_DIR}/update.tar" packages.main
+}
+
 deploy_pxe_usage() {
     local rc="$1"
     echo "Usage: ./openxt.sh deploy pxe [-r [<repo-user>@]<repo-server>:<repo-path>] [<tftp-user>@]<tftp-server>:<tftp-path> <repository-uri>"
@@ -182,6 +193,7 @@ deploy_main() {
         "pxe-old") deploy_pxe_legacy $@ ;;
         "pxe") deploy_pxe $@ ;;
         "help") deploy_usage 0 ;;
+        "update") deploy_update ;;
         *) echo "Unknown staging command \`${target}'." >&2
            deploy_usage 1
            ;;
