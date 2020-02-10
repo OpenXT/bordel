@@ -19,7 +19,7 @@ deploy_iso_legacy() {
         -no-emul-boot \
         -boot-load-size 4 \
         -boot-info-table \
-        -r -J -l -V "OpenXT ${OPENXT_VERSION} installer." \
+        -r -J -l -V "OpenXT ${OPENXT_RELEASE} installer." \
         "${STAGING_DIR}/iso" \
         "${STAGING_DIR}/repository"
     if [ $? -ne 0 ]; then
@@ -68,7 +68,7 @@ deploy_iso() {
         -r \
         -J \
         -l \
-        -V "OpenXT ${OPENXT_VERSION} installer." \
+        -V "OpenXT ${OPENXT_RELEASE} installer." \
         -f \
         -quiet \
         "${STAGING_DIR}/iso" \

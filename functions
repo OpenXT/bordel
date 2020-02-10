@@ -22,10 +22,10 @@ check_cmd_version() {
     local cmd="$1"
 
     # Ignore development/hacked versions.
-    if [ "${OPENXT_VERSION}" = "0.0.0" -o -z "${OPENXT_VERSION}" ]; then
+    if [ "${OPENXT_RELEASE}" = "0.0.0" -o -z "${OPENXT_RELEASE}" ]; then
         return 0
     fi
-    if [ "${OPENXT_VERSION%%.*}" -ge "8" ]; then
+    if [ "${OPENXT_RELEASE%%.*}" -ge "8" ]; then
         case "${cmd}" in
             *"-old")
                 echo "\`${cmd}' is no longer supported with OpenXT 8 and later versions. See \`${cmd%%-old}' command replacement." >&2
