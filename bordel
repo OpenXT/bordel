@@ -50,6 +50,11 @@ fi
 command="$1"
 shift 1
 
+if ! valid_cmd "${command}"; then
+    echo "Unknown command ${command}." >&2
+    usage 1
+fi
+
 if [ -n "${BUILD_ID}" ]; then
     BUILD_DIR="build-${BUILD_ID}"
 elif [ -e "${TOP}/build" ]; then
@@ -84,11 +89,12 @@ fi
 if [ -d "${TOP}/${BUILD_DIR}" -a "${command}" != "config" ]; then
 	pushd "${TOP}/${BUILD_DIR}" >/dev/null
 fi
+
 call_cmd ${command} $@
 ret=$?
 
 popd > /dev/null 2>&1
 
 if [ $ret -ne 0 ]; then
-       usage 1
+    exit $ret
 fi

@@ -70,15 +70,15 @@ describe_cmds() {
     done
 }
 
+valid_cmd() {
+    local cmd="${1}"
+
+    [ -z "${_CMDS##*${cmd}*}" ]
+}
+
 call_cmd() {
     local cmd=${1}
     shift 1
 
-    if [ -z "${_CMDS##*${cmd}*}" ]; then
-        eval "${cmd}_main $@"
-        return 0
-    else
-        echo "Unknown command ${cmd} attempted to be called/" >&2
-        return 1
-    fi
+    "${cmd}_main" $@
 }
