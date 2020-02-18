@@ -190,6 +190,10 @@ config_main() {
         exit 1
     fi
 
+    pushd "${TOP}" > /dev/null
+    ln -sf .repo/projects/openxt mirror
+    popd > /dev/null 2>&1
+
     config_generate_dir "${sstate_dir}"
     if [ "${default}" == "true" ]; then
         ln -sf "${TOP}/${BUILD_DIR}" "${TOP}/build"
