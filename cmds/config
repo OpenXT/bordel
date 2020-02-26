@@ -196,7 +196,7 @@ config_main() {
 
     config_generate_dir "${sstate_dir}"
     if [ "${default}" == "true" ]; then
-        ln -sf "${TOP}/${BUILD_DIR}" "${TOP}/build"
+        ln -sfrT "${TOP}/${BUILD_DIR}" "${TOP}/build"
     fi
 
     for f in bblayers.conf local.conf openxt.conf build-manifest images-manifest; do
