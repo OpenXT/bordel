@@ -145,7 +145,12 @@ stage_repository() {
             *) img_format="file" ;;
         esac
 
-        local img_src_name="${img_src_label}-${machine}.${img_type}"
+        local img_src_name
+        case "${img_src_label}" in
+            control) img_src_name="${img_src_label}.${img_type}" ;;
+            *)       img_src_name="${img_src_label}-${machine}.${img_type}" ;;
+        esac
+
         local img_dst_name="${img_dst_label}.${img_type}"
 
         if [ "${img_id}" = "file" ]; then
