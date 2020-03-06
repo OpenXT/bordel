@@ -157,9 +157,12 @@ stage_repository() {
 stage_iso() {
     local machine="$1"
     local isolinux_subdir="iso/isolinux"
-    # TODO: Well this is ugly.
     local image_name="xenclient-installer-image-${machine}"
+    # Post do_deploy refactoring path (see IMAGE_LINK in xenclient-oe).
     local iso_src_path="${machine}/${image_name}/iso"
+    if [ ! -d "${iso_src_path}" ]; then
+        iso_src_path="${machine}/iso"
+    fi
 
     if ! command_sane "/sbin/mkfs.fat" "dosfstools" ||
        ! command_sane "mmd" "mtools" ||
@@ -183,12 +186,6 @@ stage_iso() {
     local initrd_dst_path="${isolinux_subdir}/${initrd_dst_name}"
 
     stage_build_output "${initrd_src_path}" "${initrd_dst_path}"
-
-    # --- Stage netboot directory.
-    local netboot_src_path="${machine}/${image_name}/netboot"
-    local netboot_dst_path="${isolinux_subdir}/netboot"
-
-    stage_build_output "${netboot_src_path}" "${netboot_dst_path}"
 
     # --- Stage kernel.
     local kernel_type="bzImage"
@@ -271,6 +268,10 @@ stage_pxe() {
 
     # --- Stage installer bulk files.
     local pxe_src_path="${machine}/${image_name}/netboot/"
+    # Post do_deploy refactoring path (see IMAGE_LINK in xenclient-oe).
+    if [ ! -d "${pxe_src_path}" ]; then
+        pxe_src_path="${machine}/netboot/"
+    fi
     local pxe_src_suffix=".ans"
     stage_build_output_by_suffix "${pxe_src_path}" "${pxe_src_suffix}" "${pxe_subdir}"
 
