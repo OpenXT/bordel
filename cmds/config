@@ -21,7 +21,7 @@ config_generate_dir() {
         ln -sf ../sstate-cache
     fi
 
-    for d in layers downloads ccache mirror ${CERTS_DIR}; do
+    for d in layers downloads ccache ${CERTS_DIR}; do
         if [ ! -e "../${d}" ]; then
             mkdir "../${d}"
         fi
