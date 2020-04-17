@@ -106,13 +106,14 @@ stage_repository() {
         if [ -z "${l%%#*}" ]; then
             continue
         fi
-        entry=(${l})
-        machine="${entry[0]}"
-        img_id="${entry[1]}"
-        img_src_label="${entry[2]}"
-        img_type="${entry[3]}"
-        img_dst_label="${entry[4]}"
-        img_dst_mnt="${entry[5]}"
+        local entry=(${l})
+        local machine="${entry[0]}"
+        local img_id="${entry[1]}"
+        local img_src_label="${entry[2]}"
+        local img_type="${entry[3]}"
+        local img_dst_label="${entry[4]}"
+        local img_dst_mnt="${entry[5]}"
+        local img_format
 
         case "${img_type}" in
             tar.bz2) img_format="tarbz2";;
@@ -128,8 +129,8 @@ stage_repository() {
             *) img_format="file" ;;
         esac
 
-        img_src_name="${img_src_label}-${machine}.${img_type}"
-        img_dst_name="${img_dst_label}.${img_type}"
+        local img_src_name="${img_src_label}-${machine}.${img_type}"
+        local img_dst_name="${img_dst_label}.${img_type}"
 
         if [ "${img_id}" = "file" ]; then
             img_dst_name="${img_dst_label}.${img_format}"
