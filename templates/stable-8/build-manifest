@@ -9,3 +9,4 @@ xenclient-dom0-image MACHINE=xenclient-dom0
 xenclient-uivm-image MACHINE=xenclient-uivm
 xenclient-ndvm-image MACHINE=xenclient-ndvm
 xenclient-syncvm-image MACHINE=xenclient-syncvm
+package-index MACHINE=xenclient-dom0
