@@ -161,7 +161,7 @@ stage_iso() {
     local image_name="xenclient-installer-image-${machine}"
     # Post do_deploy refactoring path (see IMAGE_LINK in xenclient-oe).
     local iso_src_path="${machine}/${image_name}/iso"
-    if [ ! -d "${iso_src_path}" ]; then
+    if [ ! -d "${IMAGES_DIR}/${iso_src_path}" ]; then
         iso_src_path="${machine}/iso"
     fi
 
