@@ -28,3 +28,11 @@ to set this up.
     * Source the build_env file to get access to necessary OE variables (`. build_env`)
     * Build a single package by running `MACHINE=<machine_name> bitbake <package_name>`
     * You can run the full build if desired by running `~/openxt/openxt/bordel [-i BUILD_ID] build`
+
+## Build directory separation
+
+There are situations where it is desirable to have the build directory under a separate directory
+tree from the shared build artifacts, here on referred to as the build base directory. To configure
+such an environment a top level`-b {Build Base Path}` flag must passed to bordel, this is not to be confused with the `-b` flag
+passed to the config command. *NB*: the resulting configured build directory will have absolute path
+symlinks to the shared directories in the build base directory.
