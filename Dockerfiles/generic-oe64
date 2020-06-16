@@ -15,7 +15,7 @@ RUN apt-get update && \
 RUN curl http://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/repo && \
         chmod a+x /usr/local/bin/repo
 
-RUN useradd -Ums /bin/bash -p build -u [UID] build && \
+RUN useradd -Ums /bin/bash -l -p build -u [UID] build && \
         usermod -aG sudo build
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
