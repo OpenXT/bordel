@@ -6,6 +6,7 @@ usage() {
     echo "Usage: bordel [option] <command> [command options]"
     echo "Wrapper to build and deploy an OpenXT image."
     echo "  -h      display this help and exit."
+    echo "  -b      override base directory."
     echo "  -i      id to identify build, default is YYMMDD."
     echo ""
     echo "Command list:"
@@ -15,9 +16,6 @@ usage() {
 
 # Start by getting relative location exporting them as script globals
 BORDEL_DIR="$( cd "$( dirname "$( realpath ${BASH_SOURCE[0]} )" )" >/dev/null 2>&1 && pwd )"
-TOP=$(cd ${BORDEL_DIR}/../..; pwd)
-
-cd ${TOP}
 
 # Source in common functions
 . ${BORDEL_DIR}/functions
@@ -26,9 +24,15 @@ cd ${TOP}
 register_cmds ${BORDEL_DIR}/cmds
 
 # Parse options.
-while getopts ":i:h" opt; do
+while getopts ":b:i:h" opt; do
     case $opt in
         h)  usage 0 ;;
+        b)  BASE_DIR=$( cd $( realpath "${OPTARG}" ) >/dev/null 2>&1 && pwd )
+            if [ ! -d ${BASE_DIR} ]; then
+                echo "Cannot use ${BASE_DIR} as the base dir, not a directory." >&2
+                usage 1
+            fi
+            ;;
         i)  BUILD_ID=${OPTARG}
             ;;
         :)  echo "Option \`${OPTARG}' is missing an argument." >&2
@@ -54,6 +58,14 @@ if ! valid_cmd "${command}"; then
     echo "Unknown command ${command}." >&2
     usage 1
 fi
+
+# If BASE_DIR not set by command flag, then default to legacy behavior
+if [ -z "${BASE_DIR}" ]; then
+    BASE_DIR=$(cd ${BORDEL_DIR}/../..; pwd)
+    cd ${BASE_DIR}
+fi
+
+TOP=${PWD}
 
 if [ -n "${BUILD_ID}" ]; then
     BUILD_DIR="build-${BUILD_ID}"
