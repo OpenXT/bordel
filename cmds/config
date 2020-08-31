@@ -140,6 +140,7 @@ Deployment command:
     --default: create the 'build' symlink to make this build directory the default one (see bordel -i).
     --force: overwrite any existing configuration if the build tree was already configured.
     --rmwork: inherit rm_work.bbclass, deleting temporary workspace.
+    --no-repo-branch: do not create a named branch across OpenXT subproject repositories.
 EOF
 }
 
@@ -153,8 +154,9 @@ config_main() {
     local default="false"
     local forced="false"
     local rmwork="false"
+    local repo_branch="true"
 
-    options=$(getopt -o t:s:b:h -l default,force,rmwork -- "$@")
+    options=$(getopt -o t:s:b:h -l default,force,rmwork,no-repo-branch -- "$@")
     if [ $? -ne 0 ]; then
         config_usage
         exit 1
@@ -188,6 +190,9 @@ config_main() {
 	--rmwork)
 	    rmwork=true
 	    ;;
+        --no-repo-branch)
+            repo_branch="false"
+            ;;
         --)
             shift
             break
@@ -218,9 +223,11 @@ config_main() {
     done
     config_generate_auto "${branch}" "${forced}" "${rmwork}"
 
-    pushd "${BASE_DIR}" >/dev/null
-    repo start "${branch}" openxt/*
-    popd >/dev/null
+    if [ "${repo_branch}" = "true" ]; then
+        pushd "${BASE_DIR}" >/dev/null
+        repo start "${branch}" openxt/*
+        popd >/dev/null
+    fi
 
     config_generate_env_file
 }
