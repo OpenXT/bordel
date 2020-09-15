@@ -36,6 +36,8 @@ config_generate_auto() {
     local branch="${1}"
     local forced="${2}"
     local rmwork="${3}"
+    local debug_tweaks="${4}"
+    local permissive="${5}"
     local auto_conf="${TOP}/${BUILD_DIR}/${CONF_DIR}/auto.conf"
 
     if [ -e "${auto_conf}" ] && \
@@ -73,6 +75,12 @@ EOF
 
     if [ "${rmwork}" = "true" ]; then
         echo "INHERIT += \"rm_work\"" >> ${auto_conf}
+    fi
+    if [ "${debug_tweaks}" = "true" ]; then
+        echo "EXTRA_IMAGE_FEATURES += \"debug-tweaks\"" >> ${auto_conf}
+    fi
+    if [ "${permissive}" = "true" ]; then
+        echo "DEFAULT_ENFORCING = \"permissive\"" >> ${auto_conf}
     fi
 }
 
@@ -137,6 +145,8 @@ Deployment command:
     -t: template name used for OE build config files temlate, default is the default
     -s: select an external sstate directory to use, default is per build_id sstate
     -b: branch to tag/use for the OpenXT repositories, default is build
+    -D: Enable debug tweaks by passing "debug-tweaks" to OE EXTRA_IMAGE_FEATURES.
+    -P: Switch SELinux to permissive by default in built images.
     --default: create the 'build' symlink to make this build directory the default one (see bordel -i).
     --force: overwrite any existing configuration if the build tree was already configured.
     --rmwork: inherit rm_work.bbclass, deleting temporary workspace.
@@ -155,8 +165,10 @@ config_main() {
     local forced="false"
     local rmwork="false"
     local repo_branch="true"
+    local debug_tweaks="false"
+    local permissive="false"
 
-    options=$(getopt -o t:s:b:h -l default,force,rmwork,no-repo-branch -- "$@")
+    options=$(getopt -o t:s:b:hDP -l default,force,rmwork,no-repo-branch -- "$@")
     if [ $? -ne 0 ]; then
         config_usage
         exit 1
@@ -180,6 +192,12 @@ config_main() {
         -h)
             config_usage
             exit 0
+            ;;
+        -D)
+            debug_tweaks="true"
+            ;;
+        -P)
+            permissive="true"
             ;;
         --default)
             default=true
@@ -221,7 +239,7 @@ config_main() {
             exit 1
         fi
     done
-    config_generate_auto "${branch}" "${forced}" "${rmwork}"
+    config_generate_auto "${branch}" "${forced}" "${rmwork}" "${debug_tweaks}" "${permissive}"
 
     if [ "${repo_branch}" = "true" ]; then
         pushd "${BASE_DIR}" >/dev/null
