@@ -60,7 +60,7 @@ docker_build() {
         -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
         -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
         -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
-    	"${name}" "/home/${user}/openxt/openxt/bordel/bordel" "-i ${BUILD_ID}" "build"
+        "${name}" "/home/${user}/openxt/openxt/bordel/bordel" "-i" "${BUILD_ID}" "build"
 }
 
 docker_deploy() {
