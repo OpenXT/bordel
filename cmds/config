@@ -14,14 +14,14 @@ config_generate_dir() {
 
         ln -sfr "${sstate_dir}" sstate-cache
     else
-        if [ ! -e ${BASE_DIR}/sstate-cache ]; then
-            mkdir ${BASE_DIR}/sstate-cache
+        if [ ! -e "${BASE_DIR}/sstate-cache" ]; then
+            mkdir "${BASE_DIR}/sstate-cache"
         fi
 
-        ln -sfr ${BASE_DIR}/sstate-cache
+        ln -sfr "${BASE_DIR}/sstate-cache"
     fi
 
-    for d in layers downloads ccache mirror ${CERTS_DIR}; do
+    for d in layers downloads ccache mirror "${CERTS_DIR}"; do
         if [ ! -e "${BASE_DIR}/${d}" ]; then
             mkdir "${BASE_DIR}/${d}"
         fi
