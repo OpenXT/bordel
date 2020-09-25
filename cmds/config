@@ -12,13 +12,13 @@ config_generate_dir() {
             mkdir "${BASE_DIR}/${sstate_dir}"
         fi
 
-        ln -sf "${sstate_dir}" sstate-cache
+        ln -sfr "${sstate_dir}" sstate-cache
     else
         if [ ! -e ${BASE_DIR}/sstate-cache ]; then
             mkdir ${BASE_DIR}/sstate-cache
         fi
 
-        ln -sf ${BASE_DIR}/sstate-cache
+        ln -sfr ${BASE_DIR}/sstate-cache
     fi
 
     for d in layers downloads ccache mirror ${CERTS_DIR}; do
@@ -26,7 +26,7 @@ config_generate_dir() {
             mkdir "${BASE_DIR}/${d}"
         fi
 
-        ln -sf "${BASE_DIR}/${d}"
+        ln -sfr "${BASE_DIR}/${d}"
     done
 
     popd >/dev/null
