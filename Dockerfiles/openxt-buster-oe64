@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -yq \
         screen bash-completion python3 iputils-ping \
         guilt iasl quilt bin86 \
         bcc libsdl1.2-dev liburi-perl genisoimage policycoreutils unzip vim \
-        sudo rpm curl libncurses5-dev libncursesw5 libc6-dev-i386 libelf-dev \
+        rpm curl libncurses5-dev libncursesw5 libc6-dev-i386 libelf-dev \
         xorriso mtools dosfstools \
         file byobu man ca-certificates locales && \
         rm -rf /var/lib/apt-lists/* && \
@@ -48,7 +48,7 @@ RUN curl http://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/
 # Symlink for troublesome packages
 RUN ln -s /lib64/ld-linux-x86-64.so.2 /lib/
 
-RUN useradd -Ums /bin/bash -l -p '""' -G sudo -u $UID $UNAME
+RUN useradd -Ums /bin/bash -l -p '""' -u $UID $UNAME
 
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
