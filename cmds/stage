@@ -49,8 +49,7 @@ stage_build_output() {
         return 1
     fi
     mkdir -p `dirname ${dst}`
-    echo "cp -ruv -L -T ${src} ${dst}"
-    cp -ruv -L -T "${src}" "${dst}"
+    cp -rv -L -T "${src}" "${dst}"
 }
 
 # Usage: stage_build_output_by_suffix source suffix destination
@@ -66,7 +65,7 @@ stage_build_output_by_suffix() {
             echo "${f} is not ready yet." >&2
             break
         fi
-        cp -ruv -L "${f}" "${dst}/`basename ${f}`"
+        cp -rv -L "${f}" "${dst}/`basename ${f}`"
     done
 }
 
