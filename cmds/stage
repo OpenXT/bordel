@@ -247,8 +247,8 @@ stage_iso() {
 
     rm -f "${efi_img}"
     mkdir -p "$(dirname "${efi_img}")"
-    dd if=/dev/zero bs=1M count=5 of="${efi_img}"
-    /sbin/mkfs.fat "${efi_img}"
+    dd if=/dev/zero bs=1M count=5 of="${efi_img}" 2> /dev/null
+    /sbin/mkfs.fat "${efi_img}" > /dev/null
     mmd -i "${efi_img}" EFI
     mmd -i "${efi_img}" EFI/BOOT
 
