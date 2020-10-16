@@ -44,7 +44,12 @@ stage_build_output() {
     local src="${IMAGES_DIR}/$1"
     local dst="${STAGING_DIR}/$2"
 
-    if [ $# -ne 2 -a ! -e "${src}" ]; then
+    if [ $# -ne 2 ]; then
+        echo "Usage: stage_build_output SOURCE DESTINATION" >&2
+        return 1
+    fi
+
+    if [ ! -e "${src}" ]; then
         echo "${src} is not ready yet." >&2
         return 1
     fi
@@ -57,6 +62,11 @@ stage_build_output() {
 # (IMAGES_DIR) to the staging directory (STAGING_DIR).
 stage_build_output_by_suffix() {
     local dst="${STAGING_DIR}/$3"
+
+    if [ $# -ne 3 ]; then
+        echo "Usage: stage_build_output_by_suffix SOURCE SUFFIX DESTINATION" >&2
+        return 1
+    fi
 
     mkdir -p "${dst}"
 
