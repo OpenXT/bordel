@@ -6,7 +6,8 @@ stage_sign_repository() {
         return 1
     fi
 
-    local xc_package_sha256=($(sha256sum "${REPOSITORY_DIR}/XC-PACKAGES"))
+    local xc_package_sha256
+    read -r -a xc_package_sha256  <<< "$(sha256sum "${REPOSITORY_DIR}/XC-PACKAGES")"
     # This file seems to be used, amongst other things, for signing the "repository".
     # Due to the signing process, it needs to have a fixed size, and somehow
     # 1MB is that size...
@@ -21,7 +22,7 @@ build:${OPENXT_BUILD_ID}
 version:${OPENXT_VERSION}
 release:${OPENXT_RELEASE}
 upgrade-from:${OPENXT_UPGRADEABLE_RELEASES}
-packages:${xc_package_sha256}
+packages:${xc_package_sha256[0]}
 EOF
         yes ""
     } | head -c $((1024 * 1024)) > "${REPOSITORY_DIR}/XC-REPOSITORY"
@@ -44,13 +45,17 @@ stage_build_output() {
     local src="${IMAGES_DIR}/$1"
     local dst="${STAGING_DIR}/$2"
 
-    if [ $# -ne 2 -a ! -e "${src}" ]; then
+    if [ $# -ne 2 ]; then
+        echo "Usage: stage_build_output SOURCE DESTINATION" >&2
+        return 1
+    fi
+
+    if [ ! -e "${src}" ]; then
         echo "${src} is not ready yet." >&2
         return 1
     fi
-    mkdir -p `dirname ${dst}`
-    echo "cp -ruv -L -T ${src} ${dst}"
-    cp -ruv -L -T "${src}" "${dst}"
+    mkdir -p "$(dirname "${dst}")"
+    cp -rv -L -T "${src}" "${dst}"
 }
 
 # Usage: stage_build_output_by_suffix source suffix destination
@@ -59,6 +64,11 @@ stage_build_output() {
 stage_build_output_by_suffix() {
     local dst="${STAGING_DIR}/$3"
 
+    if [ $# -ne 3 ]; then
+        echo "Usage: stage_build_output_by_suffix SOURCE SUFFIX DESTINATION" >&2
+        return 1
+    fi
+
     mkdir -p "${dst}"
 
     for f in "${IMAGES_DIR}/${1}"*"${2}"; do
@@ -66,7 +76,7 @@ stage_build_output_by_suffix() {
             echo "${f} is not ready yet." >&2
             break
         fi
-        cp -ruv -L "${f}" "${dst}/`basename ${f}`"
+        cp -rv -L "${f}" "${dst}/$(basename "${f}")"
     done
 }
 
@@ -86,10 +96,13 @@ stage_repository_entry() {
         return 1
     fi
 
-    local size=($(du -b "${REPOSITORY_DIR}/${dst}"))
-    local sha256=($(sha256sum "${REPOSITORY_DIR}/${dst}"))
+    local size
+    read -r -a size <<< "$(du -b "${REPOSITORY_DIR}/${dst}")"
 
-    echo "${id} ${size} ${sha256} ${format} required ${dst} ${mnt}" >> "${REPOSITORY_DIR}/XC-PACKAGES"
+    local sha256
+    read -r -a sha256 <<< "$(sha256sum "${REPOSITORY_DIR}/${dst}")"
+
+    echo "${id} ${size[0]} ${sha256[0]} ${format} required ${dst} ${mnt}" >> "${REPOSITORY_DIR}/XC-PACKAGES"
 }
 
 # Usage: stage_repository
@@ -99,14 +112,17 @@ stage_repository_entry() {
 # Uses the images-manifest file in CONF_DIR to prepare the images.
 stage_repository() {
     # Remove any previous repo manifest files
-    rm -f ${REPOSITORY_DIR}/XC-*
+    rm -f "${REPOSITORY_DIR}"/XC-*
 
-    while read l; do
+    while read -r l; do
         # Quick parsing/formating.
         if [ -z "${l%%#*}" ]; then
             continue
         fi
-        local entry=(${l})
+
+        local entry
+        read -r -a entry <<< "${l}"
+
         local machine="${entry[0]}"
         local img_id="${entry[1]}"
         local img_src_label="${entry[2]}"
@@ -146,7 +162,7 @@ stage_repository() {
             echo "ERROR: Failed to stage image ${img_src_name}"
             return 1
         fi
-    done < ${CONF_DIR}/images-manifest
+    done < "${CONF_DIR}/images-manifest"
 
     stage_sign_repository
 }
@@ -228,14 +244,13 @@ stage_iso() {
     # --- Create the EFI boot partition in the staging area.
 
     local efi_img="${STAGING_DIR}/${isolinux_subdir}/efiboot.img"
-    local efi_path=$(mktemp -d)
 
-    rm -f ${efi_img}
+    rm -f "${efi_img}"
     mkdir -p "$(dirname "${efi_img}")"
-    dd if=/dev/zero bs=1M count=5 of="${efi_img}"
-    /sbin/mkfs.fat "${efi_img}"
-    mmd -i ${efi_img} EFI
-    mmd -i ${efi_img} EFI/BOOT
+    dd if=/dev/zero bs=1M count=5 of="${efi_img}" 2> /dev/null
+    /sbin/mkfs.fat "${efi_img}" > /dev/null
+    mmd -i "${efi_img}" EFI
+    mmd -i "${efi_img}" EFI/BOOT
 
     # The grub efi binary ends up with two different names depedning on 32bit
     # or 64bit build. To avoid having to attempt to determine what kind of
@@ -341,7 +356,7 @@ Stage Commands:
     pxe: Copy PXE files for the installer from Bitbake deployment directory to the staging area.
     repository: Copy build results from Bitbake deployment directory to the staging area and update the relevant meta-data.
 EOF
-    exit $1
+    exit "$1"
 }
 
 stage_need_conf() { return 0; }
@@ -349,7 +364,7 @@ stage_need_conf() { return 0; }
 # Usage: stage <command>
 # Stage commands wrapper.
 stage_main() {
-    for target in $@; do
+    for target in "$@"; do
         case "${target}" in
             "iso-old") check_cmd_version "${target}"
                        stage_iso xenclient-dom0 ;;
