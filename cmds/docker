@@ -1,5 +1,26 @@
 #!/bin/bash
 
+docker_extra_opts() {
+    local extra_opts=""
+    if [ -n "${download_cache}" ]; then
+        if [ ! -d "${download_cache}" ]; then
+            echo "Invalid download cache: \"${download_cache}\"" >&2
+            exit 1
+        fi
+        extra_opts="${extra_opts} \
+            -v ${download_cache}:/home/${user}/openxt/downloads:rw"
+    fi
+    if [ -n "${certs_external}" ]; then
+        if [ ! -d "${certs_external}" ]; then
+            echo "Invalid external certificates: \"${certs_external}\"" >&2
+            exit 1
+        fi
+        extra_opts="${extra_opts} \
+            -v ${certs_external}:/home/${user}/openxt/certs:ro"
+    fi
+    echo "${extra_opts}"
+}
+
 docker_list() {
     local path=${1}
 
@@ -41,6 +62,7 @@ docker_enter() {
         -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
         -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
         -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
+        $(docker_extra_opts) \
         "${name}"
 }
 
@@ -52,14 +74,15 @@ docker_build() {
         echo "please provide a container to enter"
         return 1
     fi
-  
+
     docker run --rm -it \
-	--security-opt seccomp=unconfined \
+        --security-opt seccomp=unconfined \
         -v "${TOP}:/home/${user}/openxt" \
         -v "${HOME}/.ssh:/home/${user}/.ssh" \
         -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
         -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
         -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
+        $(docker_extra_opts) \
         "${name}" "/home/${user}/openxt/openxt/bordel/bordel" "-i" "${BUILD_ID}" "build"
 }
 
@@ -80,12 +103,13 @@ docker_deploy() {
     fi
 
     docker run --rm -it \
-	--security-opt seccomp=unconfined \
+        --security-opt seccomp=unconfined \
         -v "${TOP}:/home/${user}/openxt" \
         -v "${HOME}/.ssh:/home/${user}/.ssh" \
         -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
         -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
         -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
+        $(docker_extra_opts) \
         "${name}" "/home/${user}/openxt/openxt/bordel/bordel" "-i" "${BUILD_ID}" "deploy" "${type}"
 }
 
@@ -99,6 +123,9 @@ docker_usage() {
     echo "  build {name} [user]: Run a build in an instance of {name} optionally as [user]"
     echo "  deploy {name} {type} [user]: Deploy build files for {type} in {name} optionally as [user]"
     echo "     * see $0 deploy for acceptable {type} values"
+    echo "Options:"
+    echo "  -d|--dl-cache: path to an existing download cache directory. This directory will be bound RW in the Docker container."
+    echo "  -c|--certs: path to an existing certificate directory. This directory will be bound RO in the Docker container."
     exit $1
 }
 
@@ -106,8 +133,9 @@ docker_usage() {
 docker_need_conf() { return 1; }
 
 docker_main() {
-    local bordel_dir="${TOP}/openxt/bordel"
-    local dockerfiles="${bordel_dir}/Dockerfiles"
+    local dockerfiles="${BORDEL_DIR}/Dockerfiles"
+    local download_cache=""
+    local certs_external=""
 
     command_sane "docker" "docker-ce"
     if [ ! $? ]; then
@@ -120,12 +148,36 @@ docker_main() {
         return 1
     fi
 
+    local options=$(getopt -o d:c:h -l dl-cache,certs -- "$@")
+    if [ "$?" -ne 0 ]; then
+        docker_usage
+        exit 1
+    fi
+    eval set -- "${options}"
+    while true; do
+        case "$1" in
+            -d)
+                shift
+                download_cache=$(realpath "${1}")
+                ;;
+            -c)
+                shift
+                certs_external=$(realpath "${1}")
+                ;;
+            --)
+                shift
+                break
+                ;;
+        esac
+        shift
+    done
+
     cmd="$1"
     shift 1
 
     case "${cmd}" in
-        "list") docker_list ${dockerfiles} ;;
-        "create") docker_create ${dockerfiles} $@ ;; 
+        "list") docker_list "${dockerfiles}" ;;
+        "create") docker_create "${dockerfiles}" $@ ;;
         "enter") docker_enter $@ ;;
         "build") docker_build $@ ;;
         "deploy") docker_deploy $@ ;;
