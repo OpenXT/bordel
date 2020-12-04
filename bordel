@@ -98,14 +98,8 @@ if $(eval "${command}_need_conf") && ! $CONFIGURED; then
     exit 1
 fi
 
-if [ -d "${TOP}/${BUILD_DIR}" -a "${command}" != "config" ]; then
-	pushd "${TOP}/${BUILD_DIR}" >/dev/null
-fi
-
 call_cmd ${command} $@
 ret=$?
-
-popd > /dev/null 2>&1
 
 if [ $ret -ne 0 ]; then
     exit $ret

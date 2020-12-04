@@ -22,6 +22,9 @@ build_main() {
 
     # Overwrite the build timestamp.
     echo "OPENXT_BUILD_DATE=\"$(date '+%T %D')\"" > ${CONF_DIR}/openxt-build-date.conf
+
+    pushd "${TOP}/${BUILD_DIR}" >/dev/null
+
     while read l ; do
         if [ -z "${l%%#*}" ]; then
             continue
@@ -40,4 +43,6 @@ build_main() {
         fi
 
     done < "${CONF_DIR}/build-manifest"
+
+    popd >/dev/null
 }
