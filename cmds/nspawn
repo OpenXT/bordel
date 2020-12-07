@@ -1,0 +1,134 @@
+#!/bin/bash
+
+nspawn_list() {
+    local path=${1}
+
+    ls -1 "${path}"
+}
+
+nspawn_create() {
+    local path=${1}
+    local name=${2}
+    local file=${3}
+
+    if [ -z "${name}" ] || [ -z "${file}" ]; then
+        echo "Error: empty parameter" >&2
+        echo "create_container name Dockerfile" >&2
+        return 1
+    fi
+
+    if [ ! -e "${path}/${file}" ]; then
+        echo "No Dockerfile defined for ${file} found" >&2
+        return 1
+    fi
+
+    echo "sudo /usr/sbin/debootstrap buster $path"
+    echo "Follow the docker file and:"
+    echo "Install packages"
+    echo "Install ghc"
+    echo "Symlink /lib64/ld-linux.so.2 /lib"
+    echo "Create a user (default build)"
+    return 1
+}
+
+nspawn_doit() {
+    local name=${1}
+    local user=${2}
+    shift 2
+
+    sudo systemd-nspawn -D "$name" \
+        --user="$user" \
+        --bind "${TOP}:/home/${user}/openxt" \
+        --bind "${HOME}/.ssh:/home/${user}/.ssh" \
+        --bind "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
+        --bind "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
+        --bind "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
+        "$@"
+}
+    
+nspawn_enter() {
+    local name=${1}
+    local user=${2:-"build"}
+
+    if [ -z "${name}" ]; then
+        echo "please provide a container to enter"
+        return 1
+    fi
+
+    nspawn_doit "$name" "$user"
+}
+
+nspawn_build() {
+    local name=${1}
+    local user=${2:-"build"}
+
+    if [ -z "${name}" ]; then
+        echo "please provide a container to enter"
+        return 1
+    fi
+
+    nspawn_doit "$name" "$user" \
+        "/home/${user}/openxt/openxt/bordel/bordel" "build" "-i" "${BUILD_ID}"
+}
+
+nspawn_deploy() {
+    local name=${1}
+    local type=${2}
+    local user=${3:-"build"}
+
+    if [ -z "${name}" ]; then
+        echo "please provide a container to enter"
+        return 1
+    fi
+
+    if [ -z "${type}" ]; then
+        echo "please provide a deploy type"
+        echo "see $0 deploy for more info"
+        deploy_usage
+        return 1
+    fi
+
+    nspawn_doit "$name" "$user" \
+        "/home/${user}/openxt/openxt/bordel/bordel" "-i" "${BUILD_ID}" "deploy" "${type}"
+}
+
+# Usage: docker_usage
+# Display usage for this command wrapper.
+nspawn_usage() {
+    echo "nspawn command list:"
+    echo "  list: List the Dockerfiles available"
+    echo "  create {name} {file}: Creates Docker image as {name} using Dockerfile {file}" 
+    echo "  enter {name} [user]: Enter an instance of {name} optionally as [user]"
+    echo "  build {name} [user]: Run a build in an instance of {name} optionally as [user]"
+    echo "  deploy {name} {type} [user]: Deploy build files for {type} in {name} optionally as [user]"
+    echo "     * see $0 deploy for acceptable {type} values"
+    exit "$1"
+}
+
+# While docker_build needs a conf item, need to be able to run create and enter before having a config
+nspawn_need_conf() { return 1; }
+
+nspawn_main() {
+    local bordel_dir="${TOP}/openxt/bordel"
+    local dockerfiles="${bordel_dir}/Dockerfiles"
+
+    command_sane "systemd-nspawn" "systemd-containers"
+    if [ ! $? ]; then
+        return 1
+    fi
+
+    cmd="$1"
+    shift 1
+
+    case "${cmd}" in
+        "list") nspawn_list "${dockerfiles}" ;;
+        "create") nspawn_create "${dockerfiles}" "$@" ;; 
+        "enter") nspawn_enter "$@" ;;
+        "build") nspawn_build "$@" ;;
+        "deploy") nspawn_deploy "$@" ;;
+        "help") nspawn_usage 0 ;;
+        *) echo "Unknown nspawn command \`${cmd}'." >&2
+           nspawn_usage 1
+           ;;
+    esac
+}
