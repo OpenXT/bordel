@@ -185,6 +185,8 @@ deploy_main() {
     target="$1"
     shift 1
 
+    pushd "${TOP}/${BUILD_DIR}" >/dev/null
+
     case "${target}" in
         "iso-old") check_cmd_version "${target}"
                    deploy_iso_legacy $@ ;;
@@ -198,4 +200,6 @@ deploy_main() {
            deploy_usage 1
            ;;
     esac
+
+    popd >/dev/null
 }

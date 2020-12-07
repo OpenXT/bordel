@@ -364,6 +364,9 @@ stage_need_conf() { return 0; }
 # Usage: stage <command>
 # Stage commands wrapper.
 stage_main() {
+
+    pushd "${TOP}/${BUILD_DIR}" >/dev/null
+
     for target in "$@"; do
         case "${target}" in
             "iso-old") check_cmd_version "${target}"
@@ -381,5 +384,7 @@ stage_main() {
                 ;;
         esac
     done
+
+    popd >/dev/null
 }
 
