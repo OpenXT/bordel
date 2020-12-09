@@ -9,10 +9,10 @@ deploy_iso_legacy() {
 
     # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
     # meta files.
-    call_cmd "stage" "repository"
+    call_cmd "stage" "repository" || return $?
     # Prepare ISO image layout.
     # TODO: Amend syslinux files to reflect versions & such
-    call_cmd "stage" "iso-old"
+    call_cmd "stage" "iso-old" || return $?
 
     genisoimage -o "${iso_path}" \
         -b "isolinux/isolinux.bin" -c "isolinux/boot.cat" \
@@ -48,10 +48,10 @@ deploy_iso() {
 
     # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
     # meta files.
-    call_cmd "stage" "repository"
+    call_cmd "stage" "repository" || return $?
     # Prepare ISO image layout.
     # TODO: Amend syslinux files to reflect versions & such
-    call_cmd "stage" "iso"
+    call_cmd "stage" "iso" || return $?
 
     xorriso -as mkisofs \
         -o "${iso_path}" \
@@ -80,7 +80,7 @@ deploy_iso() {
 deploy_update() {
     # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
     # meta files.
-    call_cmd "stage" "repository"
+    call_cmd "stage" "repository" || return $?
 
     tar -C "${STAGING_DIR}/repository" \
         -cf "${DEPLOY_DIR}/update.tar" packages.main
@@ -99,7 +99,7 @@ __deploy_pxe() {
 
     # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
     # meta files.
-    call_cmd "stage" "repository"
+    call_cmd "stage" "repository" || return $?
 
     while getopts "hr:" opt; do
         case "${opt}" in
@@ -135,13 +135,13 @@ __deploy_pxe() {
 }
 deploy_pxe_legacy() {
     # Prepare PXE staging.
-    call_cmd "stage" "pxe-old"
+    call_cmd "stage" "pxe-old" || return $?
 
     __deploy_pxe $@
 }
 deploy_pxe() {
     # Prepare PXE staging.
-    call_cmd "stage" "pxe"
+    call_cmd "stage" "pxe" || return $?
 
     __deploy_pxe $@
 }
