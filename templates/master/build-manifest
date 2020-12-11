@@ -2,7 +2,6 @@
 # <target-image-recipe> [ENV VARS]*
 #
 xenclient-installer-image MACHINE=openxt-installer
-xenclient-installer-part2-image MACHINE=openxt-installer
 xenclient-stubdomain-initramfs-image MACHINE=xenclient-stubdomain
 xenclient-dom0-image MACHINE=xenclient-dom0
 xenclient-uivm-image MACHINE=xenclient-uivm
