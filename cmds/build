@@ -16,6 +16,7 @@ build_need_conf() { return 0; }
 #   clean: Run "cleanall" on the image recipe before building it.
 build_main() {
     local mode=$1
+    local maybe_clean=""
 
     pushd "${TOP}/${BUILD_DIR}" >/dev/null
 
@@ -25,20 +26,30 @@ build_main() {
     # Overwrite the build timestamp.
     echo "OPENXT_BUILD_DATE=\"$(date '+%T %D')\"" > ${CONF_DIR}/openxt-build-date.conf
 
+    if [ "${mode}" = "clean" ]; then
+        # leading space to pretty print in error message below.
+        maybe_clean=" -c cleanall"
+    fi
+
+    if ! grep -q bitbake "${CONF_DIR}/build-manifest" ; then
+        cat >&2 << EOF
+build-manifest format change to require full bitbake commands
+e.g. MACHINE=xenclient-dom0 bitbake xenclient-dom0-image
+Either re-run \`bordel config\` or manually update ${CONF_DIR}/build-manifest
+with something like \`sed 's/\([^ ]*\) \(.*\)/\2 bitbake \1/'\` to build.
+EOF
+        return 1
+    fi
+
     while read l ; do
         if [ -z "${l%%#*}" ]; then
             continue
         fi
 
-        local entry=(${l})
-        local image="${entry[0]}"
-        local env="${entry[@]:1}"
-
-        if [ "${mode}" = "clean" ]; then
-            eval ${env} bitbake -c cleanall "${image}"
-        fi
-        if ! eval ${env} bitbake "${image}" ; then
-            echo "${env} bitbake \"${image}\" failed." >&2
+        # No quotes so this expands out the line and runs it as a command
+        #  e.g. MACHINE=xenclient-dom0 bitbake xenclient-dom0-image
+        if ! env $l $maybe_clean ; then
+            echo "build-manifest command \"$l$maybe_clean\" failed." >&2
             return 1
         fi
 
