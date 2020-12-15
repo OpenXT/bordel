@@ -17,13 +17,13 @@ build_need_conf() { return 0; }
 build_main() {
     local mode=$1
 
+    pushd "${TOP}/${BUILD_DIR}" >/dev/null
+
     # Source build_env to get access to necessary OE variables.
     . "${TOP}/${BUILD_DIR}/build_env"
 
     # Overwrite the build timestamp.
     echo "OPENXT_BUILD_DATE=\"$(date '+%T %D')\"" > ${CONF_DIR}/openxt-build-date.conf
-
-    pushd "${TOP}/${BUILD_DIR}" >/dev/null
 
     while read l ; do
         if [ -z "${l%%#*}" ]; then
