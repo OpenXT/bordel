@@ -140,7 +140,7 @@ EOF
 config_usage() {
     cat - <<EOF
 Deployment command:
-  Options: [-h] [-t template-name] [-s shared-sstate-dir] [-b branch]
+  Options: [-hDP] [-t template-name] [-s shared-sstate-dir] [-b branch] [--default] [--force] [--rmwork] [--no-repo-branch]
     -h: display this usage.
     -t: template name used for OE build config files temlate, default is the default
     -s: select an external sstate directory to use, default is per build_id sstate
@@ -205,9 +205,9 @@ config_main() {
         --force)
             forced=true
             ;;
-	--rmwork)
-	    rmwork=true
-	    ;;
+        --rmwork)
+            rmwork=true
+            ;;
         --no-repo-branch)
             repo_branch="false"
             ;;
