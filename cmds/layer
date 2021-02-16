@@ -1,0 +1,46 @@
+#! /bin/bash
+
+
+# Usage: build_describe
+# Display description for this command wrapper.
+layer_describe() {
+    echo "Add or Remove a layer to the build-tree (bitbake-layers)."
+}
+# Usage: layer_usage
+# DIsplay usage for this command wrapper.
+layer_usage() {
+    echo "Layer command list:"
+    echo "  add <layer-name>: Add a layer to the bblayer configuration. The layer must exist under in the layer directory (default: ${LAYERS_DIR})"
+    echo "  remove <layer-name>: Remove a layer from the bblayer configuration."
+    return $1
+}
+
+layer_need_conf() { return 1; }
+
+# Usage: layer <add|remove> <layer-name>
+# Commands:
+#  add <layer-name>: Add <layer-name> from the template configuration (bblayers.conf)
+#  remove <layer-name>: Remove <layer-name> from the template configuration (bblayers.conf).
+layer_main() {
+    local cmd="$1"
+    local layer="$2"
+
+    pushd "${TOP}/${BUILD_DIR}" >/dev/null || return
+
+    # Source build_env to get access to necessary OE variables.
+    # shellcheck source=/dev/null
+    . "${TOP}/${BUILD_DIR}/build_env"
+
+    case "${cmd}" in
+        "add") bitbake-layers add-layer "${TOP}/layers/${layer}"
+            ;;
+        "remove") bitbake-layers remove-layer "${TOP}/layers/${layer}"
+            ;;
+        ""|"help") layer_usage 0
+            ;;
+        *) echo "Unknown layer command \`${cmd}'." >&2
+            layer_usage 1
+    esac
+
+    popd >/dev/null || return
+}
