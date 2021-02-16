@@ -38,6 +38,7 @@ config_generate_auto() {
     local rmwork="${3}"
     local debug_tweaks="${4}"
     local permissive="${5}"
+    local sstate_mirror_uri="${6}"
     local auto_conf="${TOP}/${BUILD_DIR}/${CONF_DIR}/auto.conf"
 
     if [ -e "${auto_conf}" ] && \
@@ -81,6 +82,9 @@ EOF
     fi
     if [ "${permissive}" = "true" ]; then
         echo "DEFAULT_ENFORCING = \"permissive\"" >> ${auto_conf}
+    fi
+    if [ -n "${sstate_mirror_uri}" ]; then
+        echo "SSTATE_MIRRORS += \"file://.* ${sstate_mirror_uri} \\n\"" >> "${auto_conf}"
     fi
 }
 
@@ -140,7 +144,7 @@ EOF
 config_usage() {
     cat - <<EOF
 Deployment command:
-  Options: [-h] [-t template-name] [-s shared-sstate-dir] [-b branch]
+  Options: [-hDP] [-t template-name] [-s shared-sstate-dir] [-b branch] [--default] [--force] [--rmwork] [--no-repo-branch] [--sstate-mirror mirror-uri]
     -h: display this usage.
     -t: template name used for OE build config files temlate, default is the default
     -s: select an external sstate directory to use, default is per build_id sstate
@@ -151,6 +155,7 @@ Deployment command:
     --force: overwrite any existing configuration if the build tree was already configured.
     --rmwork: inherit rm_work.bbclass, deleting temporary workspace.
     --no-repo-branch: do not create a named branch across OpenXT subproject repositories.
+    --sstate-mirror: use the given URI as SSTATE_MIRROR to re-use already built artefacts.
 EOF
 }
 
@@ -167,8 +172,9 @@ config_main() {
     local repo_branch="true"
     local debug_tweaks="false"
     local permissive="false"
+    local sstate_mirror_uri=""
 
-    options=$(getopt -o t:s:b:hDP -l default,force,rmwork,no-repo-branch -- "$@")
+    options=$(getopt -o t:s:b:hDP -l default,force,rmwork,no-repo-branch,sstate-mirror: -- "$@")
     if [ $? -ne 0 ]; then
         config_usage
         exit 1
@@ -205,11 +211,15 @@ config_main() {
         --force)
             forced=true
             ;;
-	--rmwork)
-	    rmwork=true
-	    ;;
+        --rmwork)
+            rmwork=true
+            ;;
         --no-repo-branch)
             repo_branch="false"
+            ;;
+        --sstate-mirror)
+            shift; # The arg is next in position args
+            sstate_mirror_uri="${1}"
             ;;
         --)
             shift
@@ -239,7 +249,7 @@ config_main() {
             exit 1
         fi
     done
-    config_generate_auto "${branch}" "${forced}" "${rmwork}" "${debug_tweaks}" "${permissive}"
+    config_generate_auto "${branch}" "${forced}" "${rmwork}" "${debug_tweaks}" "${permissive}" "${sstate_mirror_uri}"
 
     if [ "${repo_branch}" = "true" ]; then
         pushd "${BASE_DIR}" >/dev/null
