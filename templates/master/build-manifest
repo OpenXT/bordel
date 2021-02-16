@@ -1,10 +1,10 @@
 # Format:
-# <target-image-recipe> [ENV VARS]*
+# [ENV VARS]* bitake <target-image-recipe>*
 #
-xenclient-installer-image MACHINE=openxt-installer
-xenclient-stubdomain-initramfs-image MACHINE=xenclient-stubdomain
-xenclient-dom0-image MACHINE=xenclient-dom0
-xenclient-uivm-image MACHINE=xenclient-uivm
-xenclient-ndvm-image MACHINE=xenclient-ndvm
-xenclient-syncvm-image MACHINE=xenclient-syncvm
-package-index MACHINE=xenclient-dom0
+MACHINE=openxt-installer bitbake xenclient-installer-image
+MACHINE=xenclient-stubdomain bitbake xenclient-stubdomain-initramfs-image
+MACHINE=xenclient-dom0 bitbake xenclient-dom0-image
+MACHINE=xenclient-uivm bitbake xenclient-uivm-image
+MACHINE=xenclient-ndvm bitbake xenclient-ndvm-image
+MACHINE=xenclient-syncvm bitbake xenclient-syncvm-image
+MACHINE=xenclient-dom0 bitbake package-index
