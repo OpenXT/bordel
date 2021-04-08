@@ -41,29 +41,31 @@ certs_main() {
         esac
     done
 
-    shift $((${OPTIND} - 1))
+    shift $((OPTIND - 1))
 
     if [ $# -eq 0 ]; then
         mkdir -p "${CERTS_DIR}" &&
-        openssl genrsa -out ${CERTS_DIR}/prod-cakey.pem 2048 &&
-        openssl genrsa -out ${CERTS_DIR}/dev-cakey.pem 2048 &&
-        openssl req -new -x509 -key ${CERTS_DIR}/prod-cakey.pem -out ${CERTS_DIR}/prod-cacert.pem -days 1095 &&
-        openssl req -new -x509 -key ${CERTS_DIR}/dev-cakey.pem -out ${CERTS_DIR}/dev-cacert.pem -days 1095 ||
+        openssl genrsa -out "${CERTS_DIR}/prod-cakey.pem" 2048 &&
+        openssl genrsa -out "${CERTS_DIR}/dev-cakey.pem" 2048 &&
+        openssl req -new -x509 -key "${CERTS_DIR}/prod-cakey.pem" \
+            -out "${CERTS_DIR}/prod-cacert.pem" -days 1095 &&
+        openssl req -new -x509 -key "${CERTS_DIR}/dev-cakey.pem" \
+            -out "${CERTS_DIR}/dev-cacert.pem" -days 1095 ||
             return 1
     else
         # Certificates are already setup for this tree.
         if [ -L "${CERTS_DIR}" ]; then
             cat - >&2 <<EOF
-Certificates are already linked to: `pwd`/oxt-certs.
+Certificates are already linked to: $(pwd)/oxt-certs.
 If they are no longer required, remove the symlink to ${CERTS_DIR} before running this script.
 Aborting.
 EOF
            return 1
         fi
         # Certificates have already be generated in this tree.
-        if [ -d "${CERTS_DIR}" -a \
-             -f "${CERTS_DIR}/prod-cacert.pem" -o \
-             -f "${CERTS_DIR}/dev-cacert.pem" ]; then
+        if [ -d "${CERTS_DIR}" ] && \
+           [ -f "${CERTS_DIR}/prod-cacert.pem" ] || \
+           [ -f "${CERTS_DIR}/dev-cacert.pem" ]; then
             cat - >&2 <<EOF
 Certificates already exist in: ${CERTS_DIR}.
 If they are no longer required, remove the ${CERTS_DIR} directory before running this script.
@@ -72,10 +74,10 @@ EOF
             return 1
         fi
         # Point to the given certs.
-        if [ -d "${path}" -a \
-             -f "${path}/prod-cacert.pem" -o \
-             -f "${path}/dev-cacert.pem" ]; then
-            ln -sf "${path}" ${CERTS_DIR}
+        if [ -d "${path}" ] && \
+           [ -f "${path}/prod-cacert.pem" ] || \
+           [ -f "${path}/dev-cacert.pem" ]; then
+            ln -sf "${path}" "${CERTS_DIR}"
         else
             cat - >&2 <<EOF
 Missing expected certificates in in \`${path}'.
