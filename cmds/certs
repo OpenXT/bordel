@@ -36,7 +36,7 @@ certs_create_selfsigned() {
         cat - > "${x509_conf}" <<EOF
 [ req ]
 default_bits = 4096
-default_md = sha256
+default_md = sha384
 prompt = no
 distinguished_name = req_distinguished_name
 string_mask = utf8only
