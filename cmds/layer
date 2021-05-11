@@ -24,6 +24,7 @@ layer_need_conf() { return 1; }
 layer_main() {
     local cmd="$1"
     local layer="$2"
+    local rc=0
 
     pushd "${TOP}/${BUILD_DIR}" >/dev/null || return
 
@@ -41,6 +42,9 @@ layer_main() {
         *) echo "Unknown layer command \`${cmd}'." >&2
             layer_usage 1
     esac
+    rc=$?
 
-    popd >/dev/null || return
+    popd >/dev/null
+
+    return ${rc}
 }
