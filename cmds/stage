@@ -1,5 +1,7 @@
 #! /bin/bash
 
+set -e
+
 stage_sign_repository() {
     if [ ! -f "${REPOSITORY_DIR}/XC-PACKAGES" ]; then
         echo "Repository in \`${REPOSITORY_DIR}' is not ready yet, XC-PACKAGES is missing." >&2
@@ -74,7 +76,7 @@ stage_build_output_by_suffix() {
     for f in "${IMAGES_DIR}/${1}"*"${2}"; do
         if [ ! -e "${f}" ]; then
             echo "${f} is not ready yet." >&2
-            break
+            return 1
         fi
         cp -rv -L "${f}" "${dst}/$(basename "${f}")"
     done
