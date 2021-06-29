@@ -12,7 +12,7 @@ deploy_iso_legacy() {
     call_cmd "stage" "repository" || return $?
     # Prepare ISO image layout.
     # TODO: Amend syslinux files to reflect versions & such
-    call_cmd "stage" "iso-old" || return $?
+    call_cmd "stage" "iso" || return $?
 
     genisoimage -o "${iso_path}" \
         -b "isolinux/isolinux.bin" -c "isolinux/boot.cat" \
@@ -133,12 +133,6 @@ __deploy_pxe() {
         rsync -avzr "${STAGING_DIR}/repository/" ${answer_files[@]} "${repo_dst}"
     fi
 }
-deploy_pxe_legacy() {
-    # Prepare PXE staging.
-    call_cmd "stage" "pxe-old" || return $?
-
-    __deploy_pxe $@
-}
 deploy_pxe() {
     # Prepare PXE staging.
     call_cmd "stage" "pxe" || return $?
@@ -192,8 +186,7 @@ deploy_main() {
                    deploy_iso_legacy $@ ;;
         "iso") check_cmd_version "${target}"
                deploy_iso $@ ;;
-        "pxe-old") deploy_pxe_legacy $@ ;;
-        "pxe") deploy_pxe $@ ;;
+        "pxe"*) deploy_pxe $@ ;;
         "help") deploy_usage 0 ;;
         "update") deploy_update ;;
         *) echo "Unknown staging command \`${target}'." >&2
