@@ -122,7 +122,7 @@ fi
 
 BUILD_DIR="\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-BBPATH="\${BUILD_DIR}/layers/bitbake/bin:"
+BBPATH="\${BUILD_DIR}/layers/bitbake/bin:\${BUILD_DIR}/layers/openembedded-core/scripts:"
 
 BB_ENV_EXTRAWHITE="MACHINE DISTRO BUILD_UID LAYERS_DIR"
 LAYERS_DIR="\${BUILD_DIR}/layers"
