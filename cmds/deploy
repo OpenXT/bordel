@@ -1,5 +1,7 @@
 #! /bin/bash
 
+set -e
+
 # Usage: deploy_iso_legacy
 # Run the required staging steps and generate the ISO image.
 deploy_iso_legacy() {
@@ -9,10 +11,10 @@ deploy_iso_legacy() {
 
     # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
     # meta files.
-    call_cmd "stage" "repository" || return $?
+    call_cmd "stage" "repository"
     # Prepare ISO image layout.
     # TODO: Amend syslinux files to reflect versions & such
-    call_cmd "stage" "iso-old" || return $?
+    call_cmd "stage" "iso"
 
     genisoimage -o "${iso_path}" \
         -b "isolinux/isolinux.bin" -c "isolinux/boot.cat" \
@@ -48,10 +50,10 @@ deploy_iso() {
 
     # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
     # meta files.
-    call_cmd "stage" "repository" || return $?
+    call_cmd "stage" "repository"
     # Prepare ISO image layout.
     # TODO: Amend syslinux files to reflect versions & such
-    call_cmd "stage" "iso" || return $?
+    call_cmd "stage" "iso"
 
     xorriso -as mkisofs \
         -o "${iso_path}" \
@@ -80,7 +82,7 @@ deploy_iso() {
 deploy_update() {
     # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
     # meta files.
-    call_cmd "stage" "repository" || return $?
+    call_cmd "stage" "repository"
 
     tar -C "${STAGING_DIR}/repository" \
         -cf "${DEPLOY_DIR}/update.tar" packages.main
@@ -99,7 +101,7 @@ __deploy_pxe() {
 
     # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
     # meta files.
-    call_cmd "stage" "repository" || return $?
+    call_cmd "stage" "repository"
 
     while getopts "hr:" opt; do
         case "${opt}" in
@@ -133,15 +135,9 @@ __deploy_pxe() {
         rsync -avzr "${STAGING_DIR}/repository/" ${answer_files[@]} "${repo_dst}"
     fi
 }
-deploy_pxe_legacy() {
-    # Prepare PXE staging.
-    call_cmd "stage" "pxe-old" || return $?
-
-    __deploy_pxe $@
-}
 deploy_pxe() {
     # Prepare PXE staging.
-    call_cmd "stage" "pxe" || return $?
+    call_cmd "stage" "pxe"
 
     __deploy_pxe $@
 }
@@ -192,8 +188,7 @@ deploy_main() {
                    deploy_iso_legacy $@ ;;
         "iso") check_cmd_version "${target}"
                deploy_iso $@ ;;
-        "pxe-old") deploy_pxe_legacy $@ ;;
-        "pxe") deploy_pxe $@ ;;
+        "pxe"*) deploy_pxe $@ ;;
         "help") deploy_usage 0 ;;
         "update") deploy_update ;;
         *) echo "Unknown staging command \`${target}'." >&2

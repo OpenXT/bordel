@@ -1,5 +1,7 @@
 #! /bin/bash
 
+set -e
+
 stage_sign_repository() {
     if [ ! -f "${REPOSITORY_DIR}/XC-PACKAGES" ]; then
         echo "Repository in \`${REPOSITORY_DIR}' is not ready yet, XC-PACKAGES is missing." >&2
@@ -74,7 +76,7 @@ stage_build_output_by_suffix() {
     for f in "${IMAGES_DIR}/${1}"*"${2}"; do
         if [ ! -e "${f}" ]; then
             echo "${f} is not ready yet." >&2
-            break
+            return 1
         fi
         cp -rv -L "${f}" "${dst}/$(basename "${f}")"
     done
@@ -172,14 +174,14 @@ stage_repository() {
     stage_sign_repository
 }
 
-# Usage: stage_iso <machine>
+# Usage: stage_iso
 # Copy images from the deployment directory (DEPLOY_DIR) of the installer
 # machine to the iso staging area (STAGING_DIR) that are specific to ISO image
 # generation.
 stage_iso() {
-    local machine="$1"
+    local machine="$( awk '$2 == "control" { print $1 }' "${CONF_DIR}/images-manifest")"
     local isolinux_subdir="iso/isolinux"
-    local image_name="xenclient-installer-image-${machine}"
+    local image_name="$(basename "$(echo "${DEPLOY_DIR}/images/${machine}/"*installer-image*.rootfs.cpio.gz)")"
     # Post do_deploy refactoring path (see IMAGE_LINK in xenclient-oe).
     local iso_src_path="${machine}/${image_name}/iso"
     if [ ! -d "${IMAGES_DIR}/${iso_src_path}" ]; then
@@ -202,8 +204,7 @@ stage_iso() {
     sed -i -e "s#[$]OPENXT_BUILD_ID#${OPENXT_BUILD_ID}#g" "${STAGING_DIR}/${isolinux_subdir}/bootmsg.txt"
 
     # --- Stage installer initrd.
-    local initrd_type="cpio.gz"
-    local initrd_src_path="${machine}/${image_name}.${initrd_type}"
+    local initrd_src_path="${machine}/${image_name}"
     local initrd_dst_name="rootfs.gz"
     local initrd_dst_path="${isolinux_subdir}/${initrd_dst_name}"
 
@@ -278,14 +279,14 @@ stage_iso() {
     fi
 }
 
-# Usage: stage_pxe <machine>
+# Usage: stage_pxe
 # Copy images from the deployment directory (DEPLOY_DIR) of the installer
 # machine to the pxe staging area (STAGING_DIR).
 stage_pxe() {
-    local machine="$1"
+    local machine="$( awk '$2 == "control" { print $1 }' "${CONF_DIR}/images-manifest")"
     local pxe_subdir="pxe"
     # TODO: Well this is ugly.
-    local image_name="xenclient-installer-image-${machine}"
+    local image_name=$(basename $(echo "${DEPLOY_DIR}/images/${machine}/"*installer-image*.rootfs.cpio.gz))
 
     # --- Stage installer bulk files.
     local pxe_src_path="${machine}/${image_name}/netboot/"
@@ -297,8 +298,7 @@ stage_pxe() {
     stage_build_output_by_suffix "${pxe_src_path}" "${pxe_src_suffix}" "${pxe_subdir}"
 
     # --- Stage installer initrd.
-    local initrd_type="cpio.gz"
-    local initrd_src_path="${machine}/${image_name}.${initrd_type}"
+    local initrd_src_path="${machine}/${image_name}"
     local initrd_dst_name="rootfs.gz"
     local initrd_dst_path="${pxe_subdir}/${initrd_dst_name}"
 
@@ -355,9 +355,7 @@ stage_usage() {
 Usage: stage <command> ...
     Run a stage command to populate STAGING_DIR with the build outputs.
 Stage Commands:
-    iso-old: Copy BIOS/ISO installer related build results, from Bitbake deployment directory to the staging area.
     iso: Copy EFI/ISO installer related build results, from Bitbake deployment directory to the staging area.
-    pxe-old: Copy PXE files for the installer from Bitbake deployment directory to the staging area.
     pxe: Copy PXE files for the installer from Bitbake deployment directory to the staging area.
     repository: Copy build results from Bitbake deployment directory to the staging area and update the relevant meta-data.
 EOF
@@ -374,14 +372,8 @@ stage_main() {
 
     for target in "$@"; do
         case "${target}" in
-            "iso-old") check_cmd_version "${target}"
-                       stage_iso xenclient-dom0 ;;
-            "iso") check_cmd_version "${target}"
-                   stage_iso openxt-installer ;;
-            "pxe-old") check_cmd_version "${target}"
-                       stage_pxe xenclient-dom0 ;;
-            "pxe") check_cmd_version "${target}"
-                   stage_pxe openxt-installer ;;
+            "iso"*) stage_iso ;;
+            "pxe"*) stage_pxe ;;
             "repository") stage_repository ;;
             "help") stage_usage 0 ;;
             *)  echo "Unknown staging command \`${target}'." >&2
