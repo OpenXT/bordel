@@ -235,7 +235,10 @@ config_main() {
     fi
 
     pushd "${BASE_DIR}" > /dev/null
-    ln -sf .repo/projects/openxt mirror
+    # starting with zeus branch, this is no longer required.
+    if [ -e .repo/projects/openxt ]; then
+        ln -sf .repo/projects/openxt mirror
+    fi
     popd > /dev/null 2>&1
 
     config_generate_dir "${sstate_dir}"

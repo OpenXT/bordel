@@ -1,7 +1,5 @@
 #! /bin/bash
 
-set -e
-
 # Usage: deploy_iso_legacy
 # Run the required staging steps and generate the ISO image.
 deploy_iso_legacy() {
