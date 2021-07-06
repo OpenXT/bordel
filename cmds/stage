@@ -1,7 +1,5 @@
 #! /bin/bash
 
-set -e
-
 stage_sign_repository() {
     if [ ! -f "${REPOSITORY_DIR}/XC-PACKAGES" ]; then
         echo "Repository in \`${REPOSITORY_DIR}' is not ready yet, XC-PACKAGES is missing." >&2

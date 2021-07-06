@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Usage: usage <exit-code>
 # Display the usage of this script.
 usage() {
