@@ -12,7 +12,7 @@ layer_usage() {
     echo "Layer command list:"
     echo "  add <layer-name>: Add a layer to the bblayer configuration. The layer must exist under in the layer directory (default: ${LAYERS_DIR})"
     echo "  remove <layer-name>: Remove a layer from the bblayer configuration."
-    return $1
+    return "${1:-0}"
 }
 
 layer_need_conf() { return 1; }

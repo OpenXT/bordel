@@ -14,7 +14,7 @@ deploy_iso_legacy() {
     # TODO: Amend syslinux files to reflect versions & such
     call_cmd "stage" "iso"
 
-    genisoimage -o "${iso_path}" \
+    if ! genisoimage -o "${iso_path}" \
         -b "isolinux/isolinux.bin" -c "isolinux/boot.cat" \
         -no-emul-boot \
         -boot-load-size 4 \
@@ -22,13 +22,12 @@ deploy_iso_legacy() {
         -r -J -l -V "OpenXT ${OPENXT_RELEASE} installer." \
         "${STAGING_DIR}/iso" \
         "${STAGING_DIR}/repository"
-    if [ $? -ne 0 ]; then
+    then
         echo "genisoimage failed."
         return 1
     fi
 
-    ${STAGING_DIR}/iso/isolinux/isohybrid ${iso_path}
-    if [ $? -ne 0 ]; then
+    if ! "${STAGING_DIR}/iso/isolinux/isohybrid" "${iso_path}"; then
         echo "isohybrid failed."
         return 1
     fi
@@ -40,7 +39,6 @@ deploy_iso() {
     # TODO: This could be defined from configuration.
     local iso_name="openxt-installer.iso"
     local iso_path="${DEPLOY_DIR}/${iso_name}"
-    local sys_sanity=0
 
     if ! command_sane "xorriso" "libisoburn"; then
         return 1
@@ -111,7 +109,7 @@ __deploy_pxe() {
             r) repo_dst="${OPTARG}" ;;
         esac
     done
-    shift $((${OPTIND} - 1))
+    shift $((OPTIND - 1))
 
     if [ "$#" -ne 2 ]; then
         deploy_pxe_usage 1
@@ -129,15 +127,14 @@ __deploy_pxe() {
     done
     rsync -rlptDvzr "${pxe_staging}/" "${tftp_dst}"
     if [ -n "${repo_dst}" ]; then
-        echo rsync -rlptDvzr "${STAGING_DIR}/repository/" ${answer_files[@]} "${repo_dst}"
-        rsync -avzr "${STAGING_DIR}/repository/" ${answer_files[@]} "${repo_dst}"
+        rsync -avzr "${STAGING_DIR}/repository/" "${answer_files[@]}" "${repo_dst}"
     fi
 }
 deploy_pxe() {
     # Prepare PXE staging.
     call_cmd "stage" "pxe"
 
-    __deploy_pxe $@
+    __deploy_pxe "$@"
 }
 
 # Usage: deploy_describe
@@ -168,7 +165,7 @@ Deployment command list:
              [<tftp-user>@]<tftp-server>:<tftp-path> tftp server, and
              setup the installer to fetch repository from <repo-uri>
 End-of-usage
-    exit $1
+    exit "${1:-0}"
 }
 
 deploy_need_conf() { return 0; }
@@ -183,10 +180,10 @@ deploy_main() {
 
     case "${target}" in
         "iso-old") check_cmd_version "${target}"
-                   deploy_iso_legacy $@ ;;
+                   deploy_iso_legacy "$@" ;;
         "iso") check_cmd_version "${target}"
-               deploy_iso $@ ;;
-        "pxe"*) deploy_pxe $@ ;;
+               deploy_iso "$@" ;;
+        "pxe"*) deploy_pxe "$@" ;;
         "help") deploy_usage 0 ;;
         "update") deploy_update ;;
         *) echo "Unknown staging command \`${target}'." >&2

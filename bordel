@@ -13,29 +13,30 @@ usage() {
     echo ""
     echo "Command list:"
     describe_cmds
-    exit $1
+    exit "${1:-0}"
 }
 
 # Start by getting relative location exporting them as script globals
-BORDEL_DIR="$( cd "$( dirname "$( realpath ${BASH_SOURCE[0]} )" )" >/dev/null 2>&1 && pwd )"
+BORDEL_DIR="$( cd "$( dirname "$( realpath "${BASH_SOURCE[0]}" )" )" >/dev/null 2>&1 && pwd )"
 
 # Source in common functions
-. ${BORDEL_DIR}/functions
+# shellcheck disable=SC1090
+. "${BORDEL_DIR}/functions"
 
 # Source in all the command modules
-register_cmds ${BORDEL_DIR}/cmds
+register_cmds "${BORDEL_DIR}/cmds"
 
 # Parse options.
 while getopts ":b:i:h" opt; do
     case $opt in
         h)  usage 0 ;;
-        b)  BASE_DIR=$( cd $( realpath "${OPTARG}" ) >/dev/null 2>&1 && pwd )
-            if [ ! -d ${BASE_DIR} ]; then
+        b)  BASE_DIR=$( cd "$( realpath "${OPTARG}" )" >/dev/null 2>&1 && pwd )
+            if [ ! -d "${BASE_DIR}" ]; then
                 echo "Cannot use ${BASE_DIR} as the base dir, not a directory." >&2
                 usage 1
             fi
             ;;
-        i)  BUILD_ID=${OPTARG}
+        i)  BUILD_ID="${OPTARG}"
             ;;
         :)  echo "Option \`${OPTARG}' is missing an argument." >&2
             usage 1
@@ -45,7 +46,7 @@ while getopts ":b:i:h" opt; do
             ;;
     esac
 done
-shift $((${OPTIND} - 1))
+shift $((OPTIND - 1))
 
 if [ $# -lt 1 ]; then
     echo "No command specified." >&2
@@ -63,19 +64,19 @@ fi
 
 # If BASE_DIR not set by command flag, then default to legacy behavior
 if [ -z "${BASE_DIR}" ]; then
-    BASE_DIR=$(cd ${BORDEL_DIR}/../..; pwd)
-    cd ${BASE_DIR}
+    BASE_DIR="$(cd "${BORDEL_DIR}/../.."; pwd)"
+    cd "${BASE_DIR}"
 fi
 
-TOP=${PWD}
+TOP="${PWD}"
 
 if [ -n "${BUILD_ID}" ]; then
     BUILD_DIR="build-${BUILD_ID}"
 elif [ -e "${TOP}/build" ]; then
-    BUILD_DIR=$(basename $(readlink -f "${TOP}/build"))
-    BUILD_ID=${BUILD_DIR#*-}
+    BUILD_DIR="$(basename "$(readlink -f "${TOP}/build")")"
+    BUILD_ID="${BUILD_DIR#*-}"
 else
-    BUILD_ID=${BUILD_ID:-$(date +"%y%m%d")}
+    BUILD_ID="${BUILD_ID:-$(date +"%y%m%d")}"
     BUILD_DIR="build-${BUILD_ID}"
 fi
 
@@ -83,26 +84,25 @@ CONF_DIR="conf"
 DEPLOY_DIR="deploy"
 STAGING_DIR="staging"
 REPO_PACKAGES_DIR="packages.main"
+# shellcheck disable=SC2034
 REPOSITORY_DIR="${STAGING_DIR}/repository/${REPO_PACKAGES_DIR}"
+# shellcheck disable=SC2034
 IMAGES_DIR="${DEPLOY_DIR}/images"
+# shellcheck disable=SC2034
 CERTS_DIR="certs"
 
 if [ -e "${TOP}/${BUILD_DIR}/${CONF_DIR}/openxt.conf" ]; then
+    # shellcheck disable=SC1090
     . "${TOP}/${BUILD_DIR}/${CONF_DIR}/openxt.conf"
     CONFIGURED=true
 else
     CONFIGURED=false
 fi
 
-if $(eval "${command}_need_conf") && ! $CONFIGURED; then
+if "${command}_need_conf" && ! "$CONFIGURED"; then
     echo "Did not find a configuration for Build ${BUILD_ID}, please run config command" >&2
     usage 1
     exit 1
 fi
 
-call_cmd ${command} $@
-ret=$?
-
-if [ $ret -ne 0 ]; then
-    exit $ret
-fi
+call_cmd "${command}" "$@"

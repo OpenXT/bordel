@@ -1,6 +1,5 @@
 #! /bin/bash
 
-
 # Usage: build_describe
 # Display description for this command wrapper.
 build_describe() {
@@ -21,10 +20,11 @@ build_main() {
     pushd "${TOP}/${BUILD_DIR}" >/dev/null
 
     # Source build_env to get access to necessary OE variables.
+    # shellcheck disable=SC1090
     . "${TOP}/${BUILD_DIR}/build_env"
 
     # Overwrite the build timestamp.
-    echo "OPENXT_BUILD_DATE=\"$(date '+%T %D')\"" > ${CONF_DIR}/openxt-build-date.conf
+    echo "OPENXT_BUILD_DATE=\"$(date '+%T %D')\"" > "${CONF_DIR}/openxt-build-date.conf"
 
     if [ "${mode}" = "clean" ]; then
         # leading space to pretty print in error message below.
@@ -41,13 +41,14 @@ EOF
         return 1
     fi
 
-    while read l ; do
+    while read -r l ; do
         if [ -z "${l%%#*}" ]; then
             continue
         fi
 
         # No quotes so this expands out the line and runs it as a command
         #  e.g. MACHINE=xenclient-dom0 bitbake xenclient-dom0-image
+        # shellcheck disable=SC2086
         if ! env $l $maybe_clean ; then
             echo "build-manifest command \"$l$maybe_clean\" failed." >&2
             return 1

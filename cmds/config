@@ -75,15 +75,17 @@ OPENXT_CERTS_DIR = "\${TOPDIR}/${CERTS_DIR}"
 EOF
 
     if [ "${rmwork}" = "true" ]; then
-        echo "INHERIT += \"rm_work\"" >> ${auto_conf}
+        echo "INHERIT += \"rm_work\"" >> "${auto_conf}"
     fi
     if [ "${debug_tweaks}" = "true" ]; then
-        echo "EXTRA_IMAGE_FEATURES += \"debug-tweaks\"" >> ${auto_conf}
+        echo "EXTRA_IMAGE_FEATURES += \"debug-tweaks\"" >> "${auto_conf}"
     fi
     if [ "${permissive}" = "true" ]; then
-        echo "DEFAULT_ENFORCING = \"permissive\"" >> ${auto_conf}
+        echo "DEFAULT_ENFORCING = \"permissive\"" >> "${auto_conf}"
     fi
     if [ -n "${sstate_mirror_uri}" ]; then
+        # \n remains literal here.
+        # shellcheck disable=2028
         echo "SSTATE_MIRRORS += \"file://.* ${sstate_mirror_uri} \\n\"" >> "${auto_conf}"
     fi
 }
@@ -174,8 +176,7 @@ config_main() {
     local permissive="false"
     local sstate_mirror_uri=""
 
-    options=$(getopt -o t:s:b:hDP -l default,force,rmwork,no-repo-branch,sstate-mirror: -- "$@")
-    if [ $? -ne 0 ]; then
+    if ! options=$(getopt -o t:s:b:hDP -l default,force,rmwork,no-repo-branch,sstate-mirror: -- "$@"); then
         config_usage
         exit 1
     fi
@@ -229,7 +230,7 @@ config_main() {
         shift
     done
 
-    if [ -d "${TOP}/${BUILD_DIR}" -a "${forced}" != "true" ]; then
+    if [ -d "${TOP}/${BUILD_DIR}" ] && [ "${forced}" != "true" ]; then
         echo "ERROR: existing build for ${BUILD_ID}, use --force to overwrite"
         exit 1
     fi
