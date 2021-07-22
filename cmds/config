@@ -54,9 +54,6 @@ DL_DIR ?= "\${TOPDIR}/downloads"
 
 SSTATE_DIR = "\${TOPDIR}/sstate-cache"
 
-# Set DEPLOY_DIR outside of TMPDIR
-DEPLOY_DIR = "\${TOPDIR}/${DEPLOY_DIR}"
-
 export CCACHE_DIR = "\${TOPDIR}/ccache"
 CCACHE_TARGET_DIR = "\${CACHE_DIR}"
 
