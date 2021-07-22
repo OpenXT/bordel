@@ -7,13 +7,6 @@ deploy_iso_legacy() {
     local iso_name="openxt-installer.iso"
     local iso_path="${DEPLOY_DIR}/${iso_name}"
 
-    # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
-    # meta files.
-    call_cmd "stage" "repository"
-    # Prepare ISO image layout.
-    # TODO: Amend syslinux files to reflect versions & such
-    call_cmd "stage" "iso"
-
     if ! genisoimage -o "${iso_path}" \
         -b "isolinux/isolinux.bin" -c "isolinux/boot.cat" \
         -no-emul-boot \
@@ -44,13 +37,6 @@ deploy_iso() {
         return 1
     fi
 
-    # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
-    # meta files.
-    call_cmd "stage" "repository"
-    # Prepare ISO image layout.
-    # TODO: Amend syslinux files to reflect versions & such
-    call_cmd "stage" "iso"
-
     xorriso -as mkisofs \
         -o "${iso_path}" \
         -isohybrid-mbr "${STAGING_DIR}/iso/isolinux/isohdpfx.bin" \
@@ -76,10 +62,6 @@ deploy_iso() {
 # Usage: deploy_update
 # Run the required staging steps and generate the update tarball
 deploy_update() {
-    # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
-    # meta files.
-    call_cmd "stage" "repository"
-
     tar -C "${STAGING_DIR}/repository" \
         -cf "${DEPLOY_DIR}/update.tar" packages.main
 }
@@ -94,10 +76,6 @@ deploy_pxe_usage() {
 __deploy_pxe() {
     local pxe_staging="${STAGING_DIR}/pxe"
     local repo_dst=""
-
-    # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
-    # meta files.
-    call_cmd "stage" "repository"
 
     while getopts "hr:" opt; do
         case "${opt}" in
@@ -131,9 +109,6 @@ __deploy_pxe() {
     fi
 }
 deploy_pxe() {
-    # Prepare PXE staging.
-    call_cmd "stage" "pxe"
-
     __deploy_pxe "$@"
 }
 
@@ -174,7 +149,45 @@ deploy_need_conf() { return 0; }
 # Deploy OpenXT on the selected installation media.
 deploy_main() {
     target="$1"
-    shift 1
+    shift
+    local stage_repo=0
+    local stage_iso=0
+    local stage_pxe=0
+
+    case "${target}" in
+        "iso*")
+            check_cmd_version "${target}"
+            stage_repo=1
+            stage_iso=1
+            ;;
+        "pxe"*)
+            stage_repo=1
+            stage_pxe=1
+            ;;
+        "update")
+            stage_repo=1
+            ;;
+        "help") deploy_usage 0
+            return
+            ;;
+    esac
+
+    if [ "$stage_repo" -eq 1 ] ; then
+        # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
+        # meta files.
+        call_cmd "stage" "repository"
+    fi
+
+    if [ "$stage_iso" -eq 1 ] ; then
+        # Prepare ISO image layout.
+        # TODO: Amend syslinux files to reflect versions & such
+        call_cmd "stage" "iso"
+    fi
+
+    if [ "$stage_pxe" -eq 1 ] ; then
+        # Prepare PXE staging.
+        call_cmd "stage" "pxe"
+    fi
 
     pushd "${TOP}/${BUILD_DIR}" >/dev/null
 
@@ -186,9 +199,6 @@ deploy_main() {
         "pxe"*) deploy_pxe "$@" ;;
         "help") deploy_usage 0 ;;
         "update") deploy_update ;;
-        *) echo "Unknown staging command \`${target}'." >&2
-           deploy_usage 1
-           ;;
     esac
 
     popd >/dev/null
