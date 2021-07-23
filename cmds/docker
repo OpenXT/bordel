@@ -22,9 +22,7 @@ docker_extra_opts() {
 }
 
 docker_list() {
-    local path=${1}
-
-    ls -1 ${path}
+    ls -1 "$1"
 }
 
 docker_create() {
@@ -32,7 +30,7 @@ docker_create() {
     local name=${2}
     local file=${3}
 
-    if [ -z "${name}" -o -z "${file}" ]; then
+    if [ -z "${name}" ] || [ -z "${file}" ]; then
         echo "Error: empty parameter" >&2
         echo "create_container name Dockerfile" >&2
         return 1
@@ -43,13 +41,15 @@ docker_create() {
         return 1
     fi
 
-    docker build --force-rm --build-arg UID=$(id -u) --build-arg GID=$(id -g) \
-        -t ${name} -f ${path}/${file} ${path}
+    docker build --force-rm --build-arg "UID=$(id -u)" --build-arg "GID=$(id -g)" \
+        -t "${name}" -f "${path}/${file}" "${path}"
 }
 
 docker_enter() {
     local name=${1}
     local user=${2:-"build"}
+    local opts
+    opts=($(docker_extra_opts))
 
     if [ -z "${name}" ]; then
         echo "please provide a container to enter"
@@ -62,13 +62,15 @@ docker_enter() {
         -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
         -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
         -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
-        $(docker_extra_opts) \
+        "${opts[@]}" \
         "${name}"
 }
 
 docker_build() {
     local name=${1}
     local user=${2:-"build"}
+    local opts
+    opts=($(docker_extra_opts))
 
     if [ -z "${name}" ]; then
         echo "please provide a container to enter"
@@ -82,7 +84,7 @@ docker_build() {
         -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
         -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
         -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
-        $(docker_extra_opts) \
+        "${opts[@]}" \
         "${name}" "/home/${user}/openxt/openxt/bordel/bordel" "-i" "${BUILD_ID}" "build"
 }
 
@@ -109,7 +111,7 @@ docker_deploy() {
         -v "${HOME}/.gitconfig:/home/${user}/.gitconfig" \
         -v "${HOME}/.repoconfig:/home/${user}/.repoconfig" \
         -v "${HOME}/.repo_.gitconfig.json:/home/${user}/.repo_.gitconfig.json" \
-        $(docker_extra_opts) \
+        "${opts[@]}" \
         "${name}" "/home/${user}/openxt/openxt/bordel/bordel" "-i" "${BUILD_ID}" "deploy" "${type}"
 }
 
@@ -126,7 +128,7 @@ docker_usage() {
     echo "Options:"
     echo "  -d|--dl-cache: path to an existing download cache directory. This directory will be bound RW in the Docker container."
     echo "  -c|--certs: path to an existing certificate directory. This directory will be bound RO in the Docker container."
-    exit $1
+    exit "${1:-0}"
 }
 
 # While docker_build needs a conf item, need to be able to run create and enter before having a config
@@ -136,20 +138,19 @@ docker_main() {
     local dockerfiles="${BORDEL_DIR}/Dockerfiles"
     local download_cache=""
     local certs_external=""
+    local options
 
     command_sane "docker" "docker-ce"
     if [ ! $? ]; then
         return 1
     fi
 
-    docker info >/dev/null 2>&1
-    if [ $? -ne 0 ]; then
+    if ! docker info >/dev/null 2>&1; then
         echo "Not allowed to control docker, usually not a member of docker group" >&2
         return 1
     fi
 
-    local options=$(getopt -o d:c:h -l dl-cache,certs -- "$@")
-    if [ "$?" -ne 0 ]; then
+    if ! options=$(getopt -o d:c:h -l dl-cache,certs -- "$@"); then
         docker_usage
         exit 1
     fi
@@ -177,10 +178,10 @@ docker_main() {
 
     case "${cmd}" in
         "list") docker_list "${dockerfiles}" ;;
-        "create") docker_create "${dockerfiles}" $@ ;;
-        "enter") docker_enter $@ ;;
-        "build") docker_build $@ ;;
-        "deploy") docker_deploy $@ ;;
+        "create") docker_create "${dockerfiles}" "$@" ;;
+        "enter") docker_enter "$@" ;;
+        "build") docker_build "$@" ;;
+        "deploy") docker_deploy "$@" ;;
         "help") docker_usage 0 ;;
         *) echo "Unknown docker command \`${cmd}'." >&2
            docker_usage 1
