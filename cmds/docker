@@ -173,8 +173,8 @@ docker_main() {
         shift
     done
 
-    cmd="$1"
-    shift 1
+    cmd="${1:-help}"
+    [ -n "$1" ] && shift
 
     case "${cmd}" in
         "list") docker_list "${dockerfiles}" ;;
