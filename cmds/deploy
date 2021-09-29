@@ -57,6 +57,8 @@ deploy_iso() {
         -quiet \
         "${STAGING_DIR}/iso" \
         "${STAGING_DIR}/repository"
+
+    echo "ISO created: $iso_path"
 }
 
 # Usage: deploy_update
@@ -64,6 +66,8 @@ deploy_iso() {
 deploy_update() {
     tar -C "${STAGING_DIR}/repository" \
         -cf "${DEPLOY_DIR}/update.tar" packages.main
+
+    echo "OTA update tarball created: ${DEPLOY_DIR}/update.tar"
 }
 
 deploy_pxe_usage() {
@@ -139,6 +143,7 @@ Deployment command list:
         pxe: Copy a PXE compatible OpenXT installer to the given
              [<tftp-user>@]<tftp-server>:<tftp-path> tftp server, and
              setup the installer to fetch repository from <repo-uri>
+     update: Create the update.tar OTA package.
 End-of-usage
     exit "${1:-0}"
 }
