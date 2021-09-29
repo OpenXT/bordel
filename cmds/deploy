@@ -144,6 +144,9 @@ Deployment command list:
              [<tftp-user>@]<tftp-server>:<tftp-path> tftp server, and
              setup the installer to fetch repository from <repo-uri>
      update: Create the update.tar OTA package.
+
+Multiple commands can be specified together.  e.g. deploy update iso.
+If pxe is used, it must be last.
 End-of-usage
     exit "${1:-0}"
 }
@@ -153,29 +156,35 @@ deploy_need_conf() { return 0; }
 # Usage: deploy <command>
 # Deploy OpenXT on the selected installation media.
 deploy_main() {
-    target="$1"
-    shift
     local stage_repo=0
     local stage_iso=0
     local stage_pxe=0
 
-    case "${target}" in
-        "iso*")
-            check_cmd_version "${target}"
-            stage_repo=1
-            stage_iso=1
-            ;;
-        "pxe"*)
-            stage_repo=1
-            stage_pxe=1
-            ;;
-        "update")
-            stage_repo=1
-            ;;
-        "help") deploy_usage 0
-            return
-            ;;
-    esac
+    targets=()
+    for target in "$@" ; do
+        targets+=("$target")
+        shift
+
+        case "${target}" in
+            iso*)
+                check_cmd_version "${target}"
+                stage_repo=1
+                stage_iso=1
+                ;;
+            pxe*)
+                stage_repo=1
+                stage_pxe=1
+                # break to maintain "$@" for deploy_pxe
+                break
+                ;;
+            update)
+                stage_repo=1
+                ;;
+            help) deploy_usage 0
+                return
+                ;;
+        esac
+    done
 
     if [ "$stage_repo" -eq 1 ] ; then
         # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
@@ -196,15 +205,17 @@ deploy_main() {
 
     pushd "${TOP}/${BUILD_DIR}" >/dev/null
 
-    case "${target}" in
-        "iso-old") check_cmd_version "${target}"
-                   deploy_iso_legacy "$@" ;;
-        "iso") check_cmd_version "${target}"
-               deploy_iso "$@" ;;
-        "pxe"*) deploy_pxe "$@" ;;
-        "help") deploy_usage 0 ;;
-        "update") deploy_update ;;
-    esac
+    for target in "${targets[@]}"; do
+        case "${target}" in
+            "iso-old") check_cmd_version "${target}"
+                       deploy_iso_legacy ;;
+            "iso") check_cmd_version "${target}"
+                   deploy_iso ;;
+            "pxe"*) deploy_pxe "$@" ;;
+            "help") deploy_usage 0 ;;
+            "update") deploy_update ;;
+        esac
+    done
 
     popd >/dev/null
 }
