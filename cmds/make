@@ -1,0 +1,12 @@
+#! /bin/bash
+
+make_describe() {
+    echo "Build all the images and then deploy the iso and update."
+}
+
+make_need_conf() { return 0; }
+
+make_main() {
+    call_cmd "build"
+    call_cmd "deploy" "iso" "update"
+}
