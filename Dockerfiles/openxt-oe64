@@ -47,6 +47,10 @@ RUN ln -s /lib64/ld-linux-x86-64.so.2 /lib/
 
 RUN useradd -Ums /bin/bash -l -p '""' -G sudo -u $UID $UNAME
 
+# Add quilt config files
+ADD root/home/build/.quiltrc /home/build/.quiltrc
+ADD root/home/build/oxt-patch.header /home/build/oxt-patch.header
+
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
 ENV LANG en_US.utf8
