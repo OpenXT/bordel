@@ -12,3 +12,4 @@ xenclient-dom0 dom0 xenclient-dom0-image ext3.gz dom0-rootfs /
 xenclient-uivm uivm xenclient-uivm-image ext3.vhd.gz uivm-rootfs /storage/uivm
 xenclient-ndvm ndvm xenclient-ndvm-image ext3.disk.vhd.gz ndvm-rootfs /storage/ndvm
 xenclient-syncvm syncvm xenclient-syncvm-image ext3.vhd.gz syncvm-rootfs /storage/syncvm
+usbvm file usbvm-image ext4.disk.vhd.gz usbvm.vhd /storage/disks/
