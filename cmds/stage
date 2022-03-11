@@ -277,6 +277,32 @@ stage_iso() {
     if [ -e "${IMAGES_DIR}/${isohdp_src}" ]; then
         stage_build_output "${isohdp_src}" "${isohdp_dst}"
     fi
+
+    stage_extra_iso
+}
+
+stage_extra_iso() {
+    local src
+    local dst
+    local dest_dir="$STAGING_DIR/extra/extra"
+
+    # Need a placeholder, even if empty, so xorriso doesn't error out.
+    mkdir -p $STAGING_DIR/extra/
+
+    if [ ! -r "$CONF_DIR/extra-manifest" ] ; then
+        return
+    fi
+
+    while read src dst ; do
+        if [ -z "${src%%#*}" ]; then
+            continue
+        fi
+
+        src="$IMAGES_DIR/$src"
+        dst="$dest_dir/$dst"
+        mkdir -p "$(dirname "$dst")"
+        cp -rv -L -T "$src" "$dst"
+    done < "$CONF_DIR/extra-manifest"
 }
 
 # Usage: stage_pxe
