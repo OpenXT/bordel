@@ -62,7 +62,7 @@ CCACHE_TARGET_DIR = "\${CACHE_DIR}"
 
 DISTRO ?= "openxt-main"
 
-OPENXT_MIRROR = "http://mirror.openxt.org"
+OPENXT_MIRROR = "https://openxt.ainfosec.com/mirror"
 OPENXT_GIT_MIRROR = "\${TOPDIR}/mirror"
 OPENXT_GIT_PROTOCOL = "file"
 OPENXT_BRANCH = "${branch}"
