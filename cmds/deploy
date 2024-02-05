@@ -7,13 +7,6 @@ deploy_iso_legacy() {
     local iso_name="openxt-installer.iso"
     local iso_path="${DEPLOY_DIR}/${iso_name}"
 
-    # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
-    # meta files.
-    call_cmd "stage" "repository"
-    # Prepare ISO image layout.
-    # TODO: Amend syslinux files to reflect versions & such
-    call_cmd "stage" "iso"
-
     if ! genisoimage -o "${iso_path}" \
         -b "isolinux/isolinux.bin" -c "isolinux/boot.cat" \
         -no-emul-boot \
@@ -44,13 +37,6 @@ deploy_iso() {
         return 1
     fi
 
-    # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
-    # meta files.
-    call_cmd "stage" "repository"
-    # Prepare ISO image layout.
-    # TODO: Amend syslinux files to reflect versions & such
-    call_cmd "stage" "iso"
-
     xorriso -as mkisofs \
         -o "${iso_path}" \
         -isohybrid-mbr "${STAGING_DIR}/iso/isolinux/isohdpfx.bin" \
@@ -71,17 +57,17 @@ deploy_iso() {
         -quiet \
         "${STAGING_DIR}/iso" \
         "${STAGING_DIR}/repository"
+
+    echo "ISO created: $iso_path"
 }
 
 # Usage: deploy_update
 # Run the required staging steps and generate the update tarball
 deploy_update() {
-    # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
-    # meta files.
-    call_cmd "stage" "repository"
-
     tar -C "${STAGING_DIR}/repository" \
         -cf "${DEPLOY_DIR}/update.tar" packages.main
+
+    echo "OTA update tarball created: ${DEPLOY_DIR}/update.tar"
 }
 
 deploy_pxe_usage() {
@@ -94,10 +80,6 @@ deploy_pxe_usage() {
 __deploy_pxe() {
     local pxe_staging="${STAGING_DIR}/pxe"
     local repo_dst=""
-
-    # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
-    # meta files.
-    call_cmd "stage" "repository"
 
     while getopts "hr:" opt; do
         case "${opt}" in
@@ -131,9 +113,6 @@ __deploy_pxe() {
     fi
 }
 deploy_pxe() {
-    # Prepare PXE staging.
-    call_cmd "stage" "pxe"
-
     __deploy_pxe "$@"
 }
 
@@ -164,6 +143,10 @@ Deployment command list:
         pxe: Copy a PXE compatible OpenXT installer to the given
              [<tftp-user>@]<tftp-server>:<tftp-path> tftp server, and
              setup the installer to fetch repository from <repo-uri>
+     update: Create the update.tar OTA package.
+
+Multiple commands can be specified together.  e.g. deploy update iso.
+If pxe is used, it must be last.
 End-of-usage
     exit "${1:-0}"
 }
@@ -173,23 +156,66 @@ deploy_need_conf() { return 0; }
 # Usage: deploy <command>
 # Deploy OpenXT on the selected installation media.
 deploy_main() {
-    target="$1"
-    shift 1
+    local stage_repo=0
+    local stage_iso=0
+    local stage_pxe=0
+
+    targets=()
+    for target in "$@" ; do
+        targets+=("$target")
+        shift
+
+        case "${target}" in
+            iso*)
+                check_cmd_version "${target}"
+                stage_repo=1
+                stage_iso=1
+                ;;
+            pxe*)
+                stage_repo=1
+                stage_pxe=1
+                # break to maintain "$@" for deploy_pxe
+                break
+                ;;
+            update)
+                stage_repo=1
+                ;;
+            help) deploy_usage 0
+                return
+                ;;
+        esac
+    done
+
+    if [ "$stage_repo" -eq 1 ] ; then
+        # Prepare repository layout and write XC-{PACKAGE,REPOSITORY,SIGNATURE}
+        # meta files.
+        call_cmd "stage" "repository"
+    fi
+
+    if [ "$stage_iso" -eq 1 ] ; then
+        # Prepare ISO image layout.
+        # TODO: Amend syslinux files to reflect versions & such
+        call_cmd "stage" "iso"
+    fi
+
+    if [ "$stage_pxe" -eq 1 ] ; then
+        # Prepare PXE staging.
+        call_cmd "stage" "pxe"
+    fi
 
     pushd "${TOP}/${BUILD_DIR}" >/dev/null
 
-    case "${target}" in
-        "iso-old") check_cmd_version "${target}"
-                   deploy_iso_legacy "$@" ;;
-        "iso") check_cmd_version "${target}"
-               deploy_iso "$@" ;;
-        "pxe"*) deploy_pxe "$@" ;;
-        "help") deploy_usage 0 ;;
-        "update") deploy_update ;;
-        *) echo "Unknown staging command \`${target}'." >&2
-           deploy_usage 1
-           ;;
-    esac
+    for target in "${targets[@]}"; do
+        case "${target}" in
+            "iso-old") check_cmd_version "${target}"
+                       deploy_iso_legacy ;;
+            "iso") check_cmd_version "${target}"
+                   deploy_iso ;;
+            "pxe"*) deploy_pxe "$@" ;;
+            "help") deploy_usage 0 ;;
+            "update") deploy_update ;;
+        esac
+    done
 
     popd >/dev/null
 }

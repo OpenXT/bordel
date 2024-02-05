@@ -20,6 +20,7 @@ build_main() {
     pushd "${TOP}/${BUILD_DIR}" >/dev/null
 
     # Source build_env to get access to necessary OE variables.
+    # cd-s into BUILD_DIR.. after it redefined it.
     # shellcheck disable=SC1090
     . "${TOP}/${BUILD_DIR}/build_env"
 
