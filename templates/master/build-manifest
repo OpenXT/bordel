@@ -7,4 +7,5 @@ MACHINE=xenclient-dom0 bitbake xenclient-dom0-image
 MACHINE=xenclient-uivm bitbake xenclient-uivm-image
 MACHINE=xenclient-ndvm bitbake xenclient-ndvm-image
 MACHINE=xenclient-syncvm bitbake xenclient-syncvm-image
+MACHINE=usbvm bitbake usbvm-image
 MACHINE=xenclient-dom0 bitbake package-index
