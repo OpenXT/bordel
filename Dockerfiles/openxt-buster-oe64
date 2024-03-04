@@ -57,6 +57,11 @@ ADD files/oxt-patch.header /home/$UNAME/oxt-patch.header
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     locale-gen
 ENV LANG en_US.utf8
+
+# This copy will include README, but update should ignore
+ADD ca-certs/* /usr/local/share/ca-certificates/
+RUN update-ca-certificates
+
 USER $UNAME
 WORKDIR /home/$UNAME
 ENTRYPOINT ["/bin/bash"]
