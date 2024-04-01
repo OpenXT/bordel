@@ -12,7 +12,7 @@ RUN apt-get update && \
         DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dash
 
 # Add "repo" tool (used by many Yocto-based projects)
-RUN curl http://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/repo && \
+RUN curl https://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/repo && \
         chmod a+x /usr/local/bin/repo
 
 RUN useradd -Ums /bin/bash -l -p build -u [UID] build && \

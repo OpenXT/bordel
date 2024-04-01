@@ -42,7 +42,7 @@ RUN cd /tmp && \
         cd /tmp && rm -rf ghc-6.12.3
 
 # Add "repo" tool (used by many Yocto-based projects)
-RUN curl http://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/repo && \
+RUN curl https://storage.googleapis.com/git-repo-downloads/repo > /usr/local/bin/repo && \
         chmod a+x /usr/local/bin/repo
 
 # Symlink for troublesome packages
