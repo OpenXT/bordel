@@ -231,7 +231,7 @@ stage_iso() {
 
     # --- Stage ACMs & license.
     local acms_src_dir="${machine}/"
-    local acms_src_suffix=".acm"
+    local acms_src_suffix=".bin"
     local acms_dst_path="${isolinux_subdir}"
 
     stage_build_output_by_suffix "${acms_src_dir}" "${acms_src_suffix}" "${acms_dst_path}"
