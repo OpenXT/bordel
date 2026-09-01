@@ -81,7 +81,7 @@ else
 fi
 
 CONF_DIR="conf"
-DEPLOY_DIR="deploy"
+DEPLOY_DIR="tmp-glibc/deploy"
 STAGING_DIR="staging"
 REPO_PACKAGES_DIR="packages.main"
 # shellcheck disable=SC2034
