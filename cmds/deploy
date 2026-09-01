@@ -7,6 +7,11 @@ deploy_iso_legacy() {
     local iso_name="openxt-installer.iso"
     local iso_path="${DEPLOY_DIR}/${iso_name}"
 
+    local STAGING_EXTRA=""
+    if [ -e "$CONF_DIR/extra-manifest" ] ; then
+        STAGING_EXTRA="${STAGING_DIR}/extra"
+    fi
+
     if ! genisoimage -o "${iso_path}" \
         -b "isolinux/isolinux.bin" -c "isolinux/boot.cat" \
         -no-emul-boot \
@@ -14,6 +19,7 @@ deploy_iso_legacy() {
         -boot-info-table \
         -r -J -l -V "OpenXT ${OPENXT_RELEASE} installer." \
         "${STAGING_DIR}/iso" \
+        $STAGING_EXTRA \
         "${STAGING_DIR}/repository"
     then
         echo "genisoimage failed."
@@ -32,6 +38,11 @@ deploy_iso() {
     # TODO: This could be defined from configuration.
     local iso_name="openxt-installer.iso"
     local iso_path="${DEPLOY_DIR}/${iso_name}"
+
+    local STAGING_EXTRA=""
+    if [ -e "$CONF_DIR/extra-manifest" ] ; then
+        STAGING_EXTRA="${STAGING_DIR}/extra"
+    fi
 
     if ! command_sane "xorriso" "libisoburn"; then
         return 1
@@ -56,6 +67,7 @@ deploy_iso() {
         -f \
         -quiet \
         "${STAGING_DIR}/iso" \
+        $STAGING_EXTRA \
         "${STAGING_DIR}/repository"
 
     echo "ISO created: $iso_path"
